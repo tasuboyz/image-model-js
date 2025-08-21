@@ -856,9 +856,14 @@
                         <i class="fas fa-save text-green-400"></i>
                         <span>Prompt Salvati</span>
                     </h3>
-                    <button id="loadSavedBtn" class="btn-secondary px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-folder-open"></i>
-                    </button>
+                    <div class="flex space-x-2">
+                        <button id="syncPromptsBtn" class="btn-secondary px-3 py-2 rounded-lg text-sm" title="Sincronizza con server">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button id="loadSavedBtn" class="btn-secondary px-3 py-2 rounded-lg text-sm">
+                            <i class="fas fa-folder-open"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="savedPrompts" class="space-y-2 text-sm">
@@ -872,6 +877,34 @@
 
     <!-- Toast Notifications -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Modal for Title Input -->
+    <div id="titleModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="glass p-6 rounded-xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Salva Prompt</h3>
+                <button id="closeTitleModal" class="btn-secondary px-3 py-2 rounded-lg">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="promptTitle" class="block text-sm font-medium mb-2">Titolo del Prompt</label>
+                    <input type="text" id="promptTitle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent border border-white/20" 
+                           placeholder="Es: Outfit Professionale Estivo" maxlength="100">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancelSave" class="btn-secondary px-4 py-2 rounded-lg">
+                        Annulla
+                    </button>
+                    <button id="confirmSave" class="btn-primary px-4 py-2 rounded-lg">
+                        <i class="fas fa-save mr-2"></i>
+                        Salva
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal for Saved Prompts -->
     <div id="savedPromptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
@@ -888,6 +921,10 @@
         </div>
     </div>
 
+    <!-- Load modules in order -->
+    <script src="promptGenerator.js"></script>
+    <script src="storage.js"></script>
+    <script src="apiClient.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

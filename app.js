@@ -15,6 +15,11 @@ const CONFIG = {
     VERSION: '1.0.0'
 };
 
+// Configure ApiClient with our settings
+if (typeof ApiClient !== 'undefined') {
+    ApiClient.setBaseUrl(CONFIG.API_BASE_URL);
+}
+
 // Database degli outfit e colori
 const OUTFIT_DATABASE = {
     presets: {
@@ -275,11 +280,6 @@ const Utils = {
         return age >= 18 && age <= 65;
     },
 
-    // Genera ID univoco
-    generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    },
-
     // Copia testo negli appunti
     async copyToClipboard(text) {
         try {
@@ -349,567 +349,8 @@ const Utils = {
     }
 };
 
-// -----------------------------------------------------------------------------
-// GESTIONE STORAGE
-// -----------------------------------------------------------------------------
-
-const Storage = {
-    // Salva dati nel localStorage
-    save(data) {
-        try {
-            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
-            return true;
-        } catch (error) {
-            console.error('Errore nel salvataggio:', error);
-            return false;
-        }
-    },
-
-    // Carica dati dal localStorage
-    load() {
-        try {
-            const data = localStorage.getItem(CONFIG.STORAGE_KEY);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error('Errore nel caricamento:', error);
-            return null;
-        }
-    },
-
-    // Pulisce il storage
-    clear() {
-        try {
-            localStorage.removeItem(CONFIG.STORAGE_KEY);
-            return true;
-        } catch (error) {
-            console.error('Errore nella pulizia:', error);
-            return false;
-        }
-    },
-
-    // Salva prompt
-    savePrompt(promptData) {
-    const saved = this.load() || {};
-    if (!Array.isArray(saved.prompts)) saved.prompts = [];
-        const newPrompt = {
-            id: Utils.generateId(),
-            name: promptData.name || `Prompt ${saved.prompts.length + 1}`,
-            prompt: promptData.prompt,
-            formData: promptData.formData,
-            timestamp: new Date().toISOString()
-        };
-        
-    saved.prompts.unshift(newPrompt);
-        
-        // Mantieni solo gli ultimi 20 prompt
-        if (saved.prompts.length > 20) {
-            saved.prompts = saved.prompts.slice(0, 20);
-        }
-        
-        this.save(saved);
-        return newPrompt;
-    },
-
-    // Sincronizza i prompt dal server e li salva nel localStorage
-    async syncFromServer() {
-        try {
-            const res = await fetch(`${CONFIG.API_BASE_URL}/prompts/saved`);
-            if (!res.ok) throw new Error('Server returned ' + res.status);
-            const data = await res.json();
-            if (data && data.success && Array.isArray(data.prompts)) {
-                // Trasforma il payload nel formato locale
-                const saved = { prompts: data.prompts.map(p => ({
-                    id: String(p.id),
-                    name: p.name,
-                    prompt: p.prompt,
-                    formData: p.form_data || p.formData || {},
-                    timestamp: p.created_at || p.timestamp || new Date().toISOString()
-                })) };
-
-                // Mantieni massimo 50 lato client
-                saved.prompts = saved.prompts.slice(0, 50);
-                this.save(saved);
-                return saved.prompts;
-            }
-            return null;
-        } catch (err) {
-            console.warn('Failed to sync prompts from server:', err);
-            return null;
-        }
-    },
-
-    // Carica prompt salvati
-    getSavedPrompts() {
-        const saved = this.load();
-        return saved?.prompts || [];
-    },
-
-    // Elimina prompt
-    deletePrompt(id) {
-        const saved = this.load();
-        if (saved?.prompts) {
-            saved.prompts = saved.prompts.filter(p => p.id !== id);
-            this.save(saved);
-            return true;
-        }
-        return false;
-    },
-
-    // Auto-save del form corrente
-    autoSave(formData) {
-        const saved = this.load() || {};
-        saved.currentForm = formData;
-        this.save(saved);
-    },
-
-    // Carica auto-save
-    loadAutoSave() {
-        const saved = this.load();
-        return saved?.currentForm || null;
-    }
-};
-
-// -----------------------------------------------------------------------------
-// GENERATORE DI PROMPT
-// -----------------------------------------------------------------------------
-
-const PromptGenerator = {
-    // Genera prompt completo
-    generate(formData) {
-        const parts = [];
-        
-        // 1. Identità base
-        parts.push(this.generateIdentity(formData));
-        
-        // 2. Aspetto fisico
-        parts.push(this.generateAppearance(formData));
-        
-        // 3. Outfit (head-to-toe)
-        const outfitParts = this.generateOutfit(formData);
-        if (outfitParts.length > 0) {
-            parts.push(`wearing ${outfitParts.join(', ')}`);
-        }
-        
-        // 4. Scena e fotografia
-        parts.push(this.generateScene(formData));
-        
-        // Unisci tutto
-        return parts.filter(p => p.trim()).join(', ') + '.';
-    },
-
-    // Genera parte identità
-    generateIdentity(data) {
-        const parts = [];
-        
-        // Genere e età
-        const gender = data.gender === 'female' ? 'Woman' : 
-                      data.gender === 'male' ? 'Man' : 'Person';
-        
-        if (data.age) {
-            parts.push(`${gender}, ${data.age} years old`);
-        } else {
-            parts.push(gender);
-        }
-        
-        // Altezza e costituzione
-        if (data.height) {
-            parts.push(`height ${data.height}`);
-        }
-        
-        if (data.build) {
-            const buildMap = {
-                'slim': 'slim build',
-                'athletic': 'athletic build with toned abs and long legs',
-                'curvy': 'curvy figure with natural curves',
-                'muscular': 'muscular build',
-                'average': 'average build'
-            };
-            parts.push(buildMap[data.build] || `${data.build} build`);
-        }
-        
-        // Dettagli femminili
-        if (data.gender === 'female') {
-            if (data.braCup && data.bustSize) {
-                const bustMap = {
-                    'petite': 'petite bust',
-                    'average': 'average bust',
-                    'full': 'full bust',
-                    'very-full': 'very full bust'
-                };
-                parts.push(`${data.braCup}-cup ${bustMap[data.bustSize] || 'bust'}`);
-            }
-        }
-        
-        return parts.join(', ');
-    },
-
-    // Genera aspetto fisico
-    generateAppearance(data) {
-        const parts = [];
-        
-        // Capelli
-        const hairParts = [];
-        if (data.hairLength && data.hairStyle && data.hairColor) {
-            const hairMap = {
-                'pixie': 'pixie cut',
-                'short': 'short',
-                'shoulder': 'shoulder-length',
-                'long': 'long',
-                'very-long': 'very long'
-            };
-            
-            const styleMap = {
-                'straight': 'straight',
-                'wavy': 'wavy',
-                'curly': 'curly',
-                'braided': 'braided',
-                'updo': 'styled in an updo',
-                'ponytail': 'in a ponytail'
-            };
-            
-            const colorMap = {
-                'blonde': 'blonde',
-                'brunette': 'brunette',
-                'black': 'black',
-                'red': 'auburn',
-                'gray': 'gray',
-                'silver': 'silver'
-            };
-            
-            hairParts.push(hairMap[data.hairLength] || data.hairLength);
-            hairParts.push(styleMap[data.hairStyle] || data.hairStyle);
-            hairParts.push(colorMap[data.hairColor] || data.hairColor);
-            
-            parts.push(`${hairParts.join(', ')} hair`);
-        }
-        
-        // Pelle e occhi
-        if (data.skinTone) {
-            const skinMap = {
-                'pale': 'pale skin',
-                'fair': 'fair skin with warm undertones',
-                'medium': 'medium skin tone',
-                'olive': 'olive skin',
-                'tan': 'tanned skin',
-                'dark': 'dark skin'
-            };
-            parts.push(skinMap[data.skinTone] || `${data.skinTone} skin`);
-        }
-        
-        if (data.eyeColor) {
-            parts.push(`${data.eyeColor} eyes`);
-        }
-        
-        return parts.join(', ');
-    },
-
-    // Genera outfit (head-to-toe)
-    generateOutfit(data) {
-        const outfitParts = [];
-        
-        // Head accessories
-        if (data.headwear && data.headwear !== 'none') {
-            outfitParts.push(data.headwear);
-        }
-        
-        if (data.faceAccessories && data.faceAccessories !== 'none') {
-            outfitParts.push(data.faceAccessories);
-        }
-        
-        // Jewelry
-        if (data.earrings && data.earrings !== 'none') {
-            const earringMap = {
-                'studs': 'stud earrings',
-                'hoops': 'hoop earrings',
-                'dangling': 'dangling earrings'
-            };
-            outfitParts.push(earringMap[data.earrings] || data.earrings);
-        }
-        
-        if (data.neckwear && data.neckwear !== 'none') {
-            if (data.secondaryColor && data.secondaryColor !== 'none') {
-                outfitParts.push(`${data.secondaryColor} ${data.neckwear}`);
-            } else {
-                outfitParts.push(data.neckwear);
-            }
-        }
-        
-        // Upper body - Intimate first
-        if (data.intimate && data.intimate !== 'none') {
-            let intimateDesc = '';
-            
-            if (data.primaryColor) {
-                intimateDesc += `${data.primaryColor} `;
-            }
-            
-            if (data.fabrics && data.fabrics !== 'none') {
-                intimateDesc += `${data.fabrics} `;
-            }
-            
-            if (data.intimate === 'bra') {
-                intimateDesc += 'balconette bra';
-                
-                if (data.secondaryColor && data.secondaryColor !== 'none') {
-                    intimateDesc += ` with ${data.secondaryColor} centerpiece`;
-                }
-            } else {
-                intimateDesc += data.intimate;
-            }
-            
-            outfitParts.push(intimateDesc);
-        }
-        
-        // Torso / Full body garments (takes priority over separate pieces)
-        if (data.torsoGarment && data.torsoGarment !== 'none') {
-            let torsoDesc = '';
-            
-            if (data.primaryColor) {
-                torsoDesc += `${data.primaryColor} `;
-            }
-            
-            if (data.torsoStyle) {
-                torsoDesc += `${data.torsoStyle} `;
-            }
-            
-            if (data.torsoGarment === 'dress') {
-                torsoDesc += 'dress';
-            } else {
-                torsoDesc += data.torsoGarment;
-            }
-            
-            if (data.torsoLength) {
-                torsoDesc += ` (${data.torsoLength})`;
-            }
-            
-            outfitParts.push(torsoDesc);
-        } else {
-            // Upper body main (only if no torso garment)
-            if (data.upperBodyMain && data.upperBodyMain !== 'none') {
-                let upperDesc = '';
-                
-                if (data.primaryColor && data.intimate === 'none') {
-                    upperDesc += `${data.primaryColor} `;
-                }
-                
-                upperDesc += data.upperBodyMain;
-                
-                if (data.sleeves && data.sleeves !== 'sleeveless') {
-                    upperDesc += ` with ${data.sleeves} sleeves`;
-                }
-                
-                outfitParts.push(upperDesc);
-            }
-        }
-        
-        // Outerwear
-        if (data.outerwear && data.outerwear !== 'none') {
-            outfitParts.push(`${data.outerwear}`);
-        }
-        
-        // Lower body (only if no full-body torso garment)
-        if (!data.torsoGarment || data.torsoGarment === 'none') {
-            if (data.bottomsType && data.bottomsType !== 'none') {
-                let lowerDesc = '';
-                
-                if (data.primaryColor && !data.intimate) {
-                    lowerDesc += `${data.primaryColor} `;
-                }
-                
-                if (data.bottomsType === 'dress') {
-                    lowerDesc += `${data.bottomsStyle || ''} dress`.trim();
-                } else {
-                    lowerDesc += data.bottomsType;
-                    if (data.bottomsStyle) {
-                        lowerDesc += ` (${data.bottomsStyle})`;
-                    }
-                }
-                
-                outfitParts.push(lowerDesc);
-            }
-        }
-        
-        // Lower intimate
-        if (data.intimateLower && data.intimateLower !== 'none') {
-            let intimateLowerDesc = '';
-            
-            if (data.primaryColor) {
-                intimateLowerDesc += `matching ${data.primaryColor} `;
-            }
-            
-            if (data.fabrics) {
-                intimateLowerDesc += `${data.fabrics} `;
-            }
-            
-            intimateLowerDesc += data.intimateLower;
-            
-            if (data.intimateLower === 'panties' && data.legwear === 'stockings') {
-                intimateLowerDesc += ' with garter straps';
-            }
-            
-            outfitParts.push(intimateLowerDesc);
-        }
-        
-        // Legwear
-        if (data.legwear && data.legwear !== 'none') {
-            let legwearDesc = '';
-            
-            if (data.legwearStyle) {
-                legwearDesc += `${data.legwearStyle} `;
-            }
-            
-            if (data.primaryColor && data.legwearStyle === 'sheer') {
-                legwearDesc += `${data.primaryColor} `;
-            }
-            
-            legwearDesc += data.legwear;
-            
-            outfitParts.push(legwearDesc);
-        }
-        
-        // Footwear
-        if (data.shoeType && data.shoeType !== 'none') {
-            let shoeDesc = '';
-            
-            if (data.primaryColor) {
-                shoeDesc += `${data.primaryColor} `;
-            }
-            
-            shoeDesc += data.shoeType;
-            
-            if (data.heelHeight && data.heelHeight !== 'flat') {
-                const heelMap = {
-                    'low': '(2")',
-                    'medium': '(3")',
-                    'high': '(4")',
-                    'very-high': '(5")'
-                };
-                shoeDesc += ` ${heelMap[data.heelHeight] || ''}`;
-            }
-            
-            outfitParts.push(shoeDesc);
-        }
-        
-        return outfitParts;
-    },
-
-    // Genera scena e fotografia
-    generateScene(data) {
-        const parts = [];
-        
-        // Pose
-        if (data.pose) {
-            const poseMap = {
-                'standing': 'standing',
-                'sitting': 'sitting',
-                'reclining': 'reclining',
-                'walking': 'walking',
-                'dynamic': 'in dynamic pose',
-                'relaxed': 'in relaxed pose',
-                'editorial': 'in editorial pose'
-            };
-            parts.push(poseMap[data.pose] || data.pose);
-        }
-        
-        // Location
-        if (data.location) {
-            const locationMap = {
-                'indoor-studio': 'in a studio',
-                'near-window': 'near a window with soft daylight filtering in',
-                'bedroom': 'in a bedroom',
-                'outdoor-natural': 'in natural outdoor setting',
-                'urban': 'in urban environment',
-                'beach': 'on the beach',
-                'forest': 'in the forest'
-            };
-            parts.push(locationMap[data.location] || data.location);
-        }
-        
-        // Photography style
-        const styleParts = [];
-        
-        if (data.photographyStyle) {
-            styleParts.push(`${data.photographyStyle} photography`);
-        }
-        
-        if (data.lighting) {
-            const lightMap = {
-                'natural': 'natural lighting',
-                'studio': 'studio lighting',
-                'golden-hour': 'golden hour lighting',
-                'dramatic': 'dramatic lighting',
-                'soft': 'warm soft lighting',
-                'warm': 'warm lighting'
-            };
-            styleParts.push(lightMap[data.lighting] || `${data.lighting} lighting`);
-        }
-        
-        if (data.shotType) {
-            const shotMap = {
-                'full-body': 'full body view',
-                'three-quarter': '3/4 body shot',
-                'half-body': 'half body shot',
-                'bust': 'bust shot',
-                'close-up': 'close-up',
-                'face-only': 'face shot'
-            };
-            styleParts.push(shotMap[data.shotType] || data.shotType);
-        }
-        
-        if (styleParts.length > 0) {
-            parts.push(styleParts.join(', '));
-        }
-        
-        return parts.join(', ');
-    },
-
-    // Calcola statistiche del prompt
-    getStats(prompt) {
-        const charCount = prompt.length;
-        const complexity = this.calculateComplexity(prompt);
-        const layers = this.countClothingLayers(prompt);
-        
-        return {
-            characterCount: charCount,
-            complexity: complexity,
-            clothingLayers: layers,
-            complexityLevel: complexity < 0.3 ? 'Bassa' : 
-                           complexity < 0.7 ? 'Media' : 'Alta'
-        };
-    },
-
-    // Calcola complessità (0-1)
-    calculateComplexity(prompt) {
-        const factors = [
-            prompt.includes('with') ? 0.1 : 0,
-            prompt.includes('wearing') ? 0.1 : 0,
-            prompt.includes('lace') ? 0.1 : 0,
-            prompt.includes('emerald') || prompt.includes('gold') ? 0.1 : 0,
-            prompt.includes('centerpiece') ? 0.1 : 0,
-            prompt.includes('matching') ? 0.1 : 0,
-            prompt.includes('garter') ? 0.1 : 0,
-            prompt.includes('fishnet') ? 0.1 : 0,
-            prompt.includes('cinematic') || prompt.includes('dramatic') ? 0.1 : 0,
-            prompt.length > 200 ? 0.1 : 0
-        ];
-        
-        return Math.min(factors.reduce((a, b) => a + b, 0), 1);
-    },
-
-    // Conta layers dell'outfit
-    countClothingLayers(prompt) {
-        const layers = [
-            prompt.includes('bra') || prompt.includes('corset'),
-            prompt.includes('blouse') || prompt.includes('shirt') || prompt.includes('top'),
-            prompt.includes('jacket') || prompt.includes('coat'),
-            prompt.includes('panties') || prompt.includes('thong'),
-            prompt.includes('pants') || prompt.includes('skirt') || prompt.includes('dress'),
-            prompt.includes('stockings') || prompt.includes('tights'),
-            prompt.includes('heels') || prompt.includes('shoes') || prompt.includes('boots')
-        ];
-        
-        return layers.filter(Boolean).length;
-    }
-};
+// PromptGenerator is provided by `promptGenerator.js` and loaded before `app.js`.
+// Remove the in-file duplicate definition to avoid "Identifier already declared" errors.
 
 // -----------------------------------------------------------------------------
 // GESTIONE INTERFACCIA UTENTE
@@ -927,7 +368,7 @@ const UI = {
         this.loadAutoSave();
         // Try to sync saved prompts from server on init, then refresh UI
         try {
-            Storage.syncFromServer().then((prompts) => {
+            Storage.syncFromServer(CONFIG.API_BASE_URL).then((prompts) => {
                 // If server returned prompts, refresh the displayed list
                 this.updateSavedPromptsList();
             }).catch(() => {
@@ -987,10 +428,7 @@ const UI = {
             const el = document.getElementById(id);
             if (el) {
                 const handler = () => {
-                    // Debug: log the change event and new value
-                    try { console.debug('TORSO CHANGE:', id, el.value); } catch (e) {}
-
-                    // Force immediate update path (non-debounced) for troubleshooting
+                    // Force immediate update path (non-debounced) for better responsiveness
                     this.collectFormData();
                     this.generateAndUpdatePreview();
                     this.updateClothingMap();
@@ -1031,49 +469,118 @@ const UI = {
                 formData[input.id] = input.value;
             }
         });
-        
-        // Lightweight debug: ensure torso values are collected
-        // (removed in production) -- logs only when console is open
-        try {
-            console.debug('collectFormData torso:', {
-                torsoGarment: formData.torsoGarment,
-                torsoStyle: formData.torsoStyle,
-                torsoLength: formData.torsoLength,
-                neckline: formData.neckline
-            });
-        } catch (e) {}
 
         appState.formData = formData;
         return formData;
     },
 
+    // Map flat form data (DOM ids) to nested structure expected by PromptGenerator
+    mapToNested(flat) {
+        if (!flat || typeof flat !== 'object') return {};
+
+        const identity = {
+            age: flat.age || undefined,
+            gender: flat.gender || undefined,
+            ethnicity: flat.ethnicity || undefined,
+            profession: flat.profession || undefined
+        };
+
+        const appearance = {
+            bodyType: flat.build || undefined,
+            height: flat.height || undefined,
+            hairColor: flat.hairColor || undefined,
+            hairStyle: flat.hairStyle || undefined,
+            hairLength: flat.hairLength || undefined,
+            hairTexture: flat.hairTexture || undefined,
+            eyeColor: flat.eyeColor || undefined,
+            skinTone: flat.skinTone || undefined
+        };
+
+        // Build accessories string
+        const accessoriesParts = [];
+        if (flat.headwear && flat.headwear !== 'none') accessoriesParts.push(flat.headwear);
+        if (flat.hairAccessories && flat.hairAccessories !== 'none') accessoriesParts.push(flat.hairAccessories);
+        if (flat.faceAccessories && flat.faceAccessories !== 'none') accessoriesParts.push(flat.faceAccessories);
+        if (flat.earrings && flat.earrings !== 'none') accessoriesParts.push(flat.earrings);
+        if (flat.neckwear && flat.neckwear !== 'none') accessoriesParts.push(flat.neckwear);
+
+        // Torso logic: prefer explicit torsoGarment, otherwise infer from bottomsType=dress
+        let torsoVal = undefined;
+        if (flat.torsoGarment && flat.torsoGarment !== 'none') {
+            torsoVal = flat.torsoGarment;
+        } else if (flat.bottomsType === 'dress') {
+            // If bottomsStyle indicates maxi, prefer 'maxi dress' to match promptGenerator checks
+            torsoVal = (flat.bottomsStyle === 'maxi') ? 'maxi dress' : 'dress';
+        }
+
+        const clothing = {
+            torso: torsoVal,
+            torsoColor: flat.primaryColor || undefined,
+            torsoCoversLower: !!flat.torsoCoversLower,
+            lower: (flat.bottomsType && flat.bottomsType !== 'dress') ? (flat.bottomsStyle ? `${flat.bottomsStyle} ${flat.bottomsType}` : flat.bottomsType) : undefined,
+            lowerColor: flat.secondaryColor || undefined,
+            footwear: flat.shoeType || undefined,
+            footwearColor: flat.primaryColor || undefined,
+            accessories: accessoriesParts.length > 0 ? accessoriesParts.join(', ') : undefined
+        };
+
+        const scene = {
+            location: flat.location || undefined,
+            time: flat.time || undefined,
+            weather: flat.weather || undefined,
+            mood: flat.mood || undefined,
+            lighting: flat.lighting || undefined,
+            background: flat.photographyStyle || undefined
+        };
+
+        return {
+            identity,
+            appearance,
+            clothing,
+            scene
+        };
+    },
+
     // Genera e aggiorna preview
     generateAndUpdatePreview() {
-        const prompt = PromptGenerator.generate(appState.formData);
-    try { console.debug('GENERATED PROMPT:', prompt); } catch (e) {}
-        const stats = PromptGenerator.getStats(prompt);
-        
-        // Update preview
-        const previewElement = document.getElementById('promptPreview');
-        if (prompt.trim()) {
-            previewElement.textContent = prompt;
-            previewElement.classList.remove('text-white/50', 'italic');
-        } else {
-            previewElement.innerHTML = '<span class="text-white/50 italic">Compila il form per vedere l\'anteprima del prompt...</span>';
-        }
-        
-        // Update stats
-        document.getElementById('charCount').textContent = stats.characterCount;
-        document.getElementById('complexityLevel').textContent = stats.complexityLevel;
-        
-        // Update progress color based on character count
-        const progressElement = document.getElementById('charCount');
-        if (stats.characterCount > CONFIG.MAX_CHARACTERS) {
-            progressElement.classList.add('text-red-400');
-        } else if (stats.characterCount > CONFIG.MAX_CHARACTERS * 0.8) {
-            progressElement.classList.add('text-yellow-400');
-        } else {
-            progressElement.classList.remove('text-red-400', 'text-yellow-400');
+        try {
+            // PromptGenerator expects a nested structure; keep flat appState.formData for UI but convert here
+            const nested = this.mapToNested(appState.formData || {});
+            const result = PromptGenerator.generate(nested);
+            const prompt = (result && result.prompt) ? result.prompt : '';
+
+            // Update preview
+            const previewElement = document.getElementById('promptPreview');
+            if (!previewElement) return;
+
+            if (prompt && prompt.trim() && !prompt.includes('Compila il form')) {
+                previewElement.textContent = prompt;
+                previewElement.classList.remove('text-white/50', 'italic');
+            } else {
+                previewElement.innerHTML = '<span class="text-white/50 italic">Please fill the form to see the prompt preview...</span>';
+            }
+
+            // Update stats using the new module's metadata
+            const charCountEl = document.getElementById('charCount');
+            const complexityEl = document.getElementById('complexityLevel');
+            if (charCountEl && typeof result.characterCount !== 'undefined') charCountEl.textContent = result.characterCount;
+            if (complexityEl) complexityEl.textContent = result.complexity === 'simple' ? 'Bassa' : (result.complexity === 'medium' ? 'Media' : 'Alta');
+
+            // Update progress color based on character count
+            const progressElement = document.getElementById('charCount');
+            if (progressElement && typeof result.characterCount !== 'undefined') {
+                if (result.characterCount > CONFIG.MAX_CHARACTERS) {
+                    progressElement.classList.add('text-red-400');
+                } else if (result.characterCount > CONFIG.MAX_CHARACTERS * 0.8) {
+                    progressElement.classList.add('text-yellow-400');
+                } else {
+                    progressElement.classList.remove('text-red-400', 'text-yellow-400');
+                }
+            }
+        } catch (err) {
+            console.error('generateAndUpdatePreview failed:', err);
+            const previewElement = document.getElementById('promptPreview');
+            if (previewElement) previewElement.innerHTML = '<span class="text-red-400">Errore generazione anteprima</span>';
         }
     },
 
@@ -1099,10 +606,7 @@ const UI = {
             mapLower: this.getLowerDescription(),
             mapLegs: this.getLegsDescription(),
             mapFeet: this.getFeetDescription()
-        };
-    try { console.debug('CLOTHING MAP DESCRIPTIONS:', mapElements); } catch (e) {}
-        
-        Object.entries(mapElements).forEach(([elementId, description]) => {
+        };        Object.entries(mapElements).forEach(([elementId, description]) => {
             const element = document.getElementById(elementId);
             const span = element.querySelector('span:last-child');
             
@@ -1207,7 +711,7 @@ const UI = {
         // Copy button
         document.getElementById('copyBtn').addEventListener('click', async () => {
             const prompt = document.getElementById('promptPreview').textContent;
-            if (prompt && !prompt.includes('Compila il form')) {
+            if (prompt && !prompt.includes('Please fill the form')) {
                 const success = await Utils.copyToClipboard(prompt);
                 if (success) {
                     this.showToast('Prompt copiato negli appunti!', 'success');
@@ -1218,7 +722,7 @@ const UI = {
         // Export button
         document.getElementById('exportBtn').addEventListener('click', () => {
             const prompt = document.getElementById('promptPreview').textContent;
-            if (prompt && !prompt.includes('Compila il form')) {
+            if (prompt && !prompt.includes('Please fill the form')) {
                 const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
                 Utils.downloadFile(prompt, `prompt_${timestamp}.txt`);
                 this.showToast('Prompt esportato!', 'success');
@@ -1243,6 +747,11 @@ const UI = {
         // Load saved button
         document.getElementById('loadSavedBtn').addEventListener('click', () => {
             this.showSavedPromptsModal();
+        });
+
+        // Sync prompts button
+        document.getElementById('syncPromptsBtn').addEventListener('click', () => {
+            this.syncPrompts();
         });
 
         // Sidebar toggle (collapse/expand)
@@ -1280,11 +789,12 @@ const UI = {
                 }
             });
 
-            // Build custom dropdown from native select options
-            try {
-                const dropdown = document.getElementById('presetDropdown');
-                const list = dropdown.querySelector('.custom-select-list');
-                const toggle = dropdown.querySelector('.custom-select-toggle');
+            // Build custom dropdown from native select options (if element exists)
+            const dropdown = document.getElementById('presetDropdown');
+            if (dropdown) {
+                try {
+                    const list = dropdown.querySelector('.custom-select-list');
+                    const toggle = dropdown.querySelector('.custom-select-toggle');
 
                 // populate options
                 Array.from(nativeSelect.options).forEach(opt => {
@@ -1355,8 +865,9 @@ const UI = {
                 document.addEventListener('click', (ev) => {
                     if (!dropdown.contains(ev.target)) setExpanded(false);
                 });
-            } catch (err) {
-                console.warn('Custom preset dropdown failed to initialize', err);
+                } catch (err) {
+                    console.warn('Custom preset dropdown failed to initialize', err);
+                }
             }
         }
 
@@ -1415,53 +926,102 @@ const UI = {
     },
 
     // Salva prompt corrente
-    saveCurrentPrompt() {
+    async saveCurrentPrompt() {
         const prompt = document.getElementById('promptPreview').textContent;
-        if (!prompt || prompt.includes('Compila il form')) {
+        if (!prompt || prompt.includes('Please fill the form')) {
             this.showToast('Nessun prompt da salvare', 'warning');
             return;
         }
 
-        // Ask user for a title
-        let name = window.prompt('Inserisci un titolo per il prompt:', prompt.substring(0, 50));
-        if (name === null) return; // cancelled
-        name = name.trim() || (prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''));
+        // Show title modal
+        this.showTitleModal(prompt);
+    },
 
-        const payload = {
-            name: name,
-            prompt: prompt,
-            form_data: appState.formData
+    // Show title modal for prompt saving
+    showTitleModal(prompt) {
+        const modal = document.getElementById('titleModal');
+        const titleInput = document.getElementById('promptTitle');
+        const confirmBtn = document.getElementById('confirmSave');
+        const cancelBtn = document.getElementById('cancelSave');
+        const closeBtn = document.getElementById('closeTitleModal');
+
+        // Pre-fill with prompt preview
+        titleInput.value = prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '');
+        titleInput.focus();
+        titleInput.select();
+
+        // Show modal
+        modal.classList.remove('hidden');
+
+        // Handle save confirmation
+        const handleSave = async () => {
+            const name = titleInput.value.trim() || (prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''));
+            
+            const payload = {
+                name: name,
+                prompt: prompt,
+                form_data: appState.formData
+            };
+
+            // Try saving to server first using ApiClient
+            try {
+                const result = await ApiClient.savePrompt(payload);
+                if (result.success) {
+                    // Save returned id into local copy for consistency
+                    const savedLocal = Storage.load() || {};
+                    if (!Array.isArray(savedLocal.prompts)) savedLocal.prompts = [];
+                    savedLocal.prompts.unshift({
+                        id: String(result.id),
+                        name: name,
+                        prompt: prompt,
+                        formData: appState.formData,
+                        timestamp: new Date().toISOString()
+                    });
+                    Storage.save(savedLocal);
+                    this.updateSavedPromptsList();
+                    this.showToast('Prompt salvato sul server!', 'success');
+                } else {
+                    throw new Error(result.error || 'Server save failed');
+                }
+            } catch (err) {
+                console.warn('Server save failed, falling back to localStorage:', err);
+                Storage.savePrompt({ name: name, prompt: prompt, formData: appState.formData });
+                this.updateSavedPromptsList();
+                this.showToast('Server non disponibile: salvato localmente', 'warning');
+            }
+
+            this.closeTitleModal();
         };
 
-        // Try saving to server first
-        fetch(`${CONFIG.API_BASE_URL}/prompts/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).then(res => res.json()).then(data => {
-            if (data && data.success) {
-                // Save returned id into local copy for consistency
-                const savedLocal = Storage.load() || {};
-                if (!Array.isArray(savedLocal.prompts)) savedLocal.prompts = [];
-                savedLocal.prompts.unshift({
-                    id: String(data.id),
-                    name: name,
-                    prompt: prompt,
-                    formData: appState.formData,
-                    timestamp: new Date().toISOString()
-                });
-                Storage.save(savedLocal);
-                this.updateSavedPromptsList();
-                this.showToast('Prompt salvato sul server!', 'success');
-            } else {
-                throw new Error('Server save failed');
+        // Handle cancel
+        const handleCancel = () => {
+            this.closeTitleModal();
+        };
+
+        // Add event listeners
+        confirmBtn.addEventListener('click', handleSave, { once: true });
+        cancelBtn.addEventListener('click', handleCancel, { once: true });
+        closeBtn.addEventListener('click', handleCancel, { once: true });
+
+        // Handle Enter key
+        titleInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSave();
             }
-        }).catch(err => {
-            console.warn('Server save failed, falling back to localStorage:', err);
-            Storage.savePrompt({ name: name, prompt: prompt, formData: appState.formData });
-            this.updateSavedPromptsList();
-            this.showToast('Server non disponibile: salvato localmente', 'warning');
-        });
+        }, { once: true });
+
+        // Handle Escape key
+        modal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        }, { once: true });
+    },
+
+    // Close title modal
+    closeTitleModal() {
+        const modal = document.getElementById('titleModal');
+        modal.classList.add('hidden');
     },
 
     // Auto-save
@@ -1568,6 +1128,89 @@ const UI = {
                 document.getElementById('savedPromptsModal').classList.add('hidden');
             }
         });
+    },
+
+    // Sync prompts with server
+    async syncPrompts() {
+        const syncBtn = document.getElementById('syncPromptsBtn');
+        const originalIcon = syncBtn.querySelector('i').className;
+        
+        // Show loading state
+        syncBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+        syncBtn.disabled = true;
+        
+        try {
+            // Check server health first
+            const healthCheck = await ApiClient.checkHealth();
+            if (!healthCheck.success) {
+                throw new Error('Server non disponibile');
+            }
+
+            // Get local prompts
+            const localData = Storage.load();
+            const localPrompts = localData?.prompts || [];
+            
+            // Get server prompts
+            const serverResponse = await ApiClient.getPrompts();
+            if (!serverResponse.success) {
+                throw new Error('Impossibile recuperare prompt dal server');
+            }
+            
+            const serverPrompts = serverResponse.prompts || [];
+            
+            // Merge prompts (server prompts take precedence, then local-only prompts)
+            const mergedPrompts = [];
+            const serverIds = new Set(serverPrompts.map(p => p.id));
+            
+            // Add all server prompts
+            mergedPrompts.push(...serverPrompts);
+            
+            // Add local prompts that don't exist on server
+            const localOnlyPrompts = localPrompts.filter(p => !serverIds.has(p.id));
+            
+            // Try to upload local-only prompts to server
+            for (const localPrompt of localOnlyPrompts) {
+                try {
+                    const uploadResult = await ApiClient.savePrompt({
+                        name: localPrompt.name,
+                        prompt: localPrompt.prompt,
+                        form_data: localPrompt.formData
+                    });
+                    
+                    if (uploadResult.success) {
+                        // Update local prompt with server ID
+                        localPrompt.id = String(uploadResult.id);
+                        mergedPrompts.push(localPrompt);
+                    } else {
+                        // Keep local prompt if upload fails
+                        mergedPrompts.push(localPrompt);
+                    }
+                } catch (err) {
+                    console.warn('Failed to upload local prompt:', localPrompt.name, err);
+                    // Keep local prompt if upload fails
+                    mergedPrompts.push(localPrompt);
+                }
+            }
+            
+            // Sort by timestamp (newest first)
+            mergedPrompts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Update local storage with merged data
+            Storage.save({ prompts: mergedPrompts });
+            
+            // Update UI
+            this.updateSavedPromptsList();
+            
+            this.showToast('Sincronizzazione completata!', 'success');
+            
+        } catch (err) {
+            console.error('Sync failed:', err);
+            this.showToast(`Errore sincronizzazione: ${err.message}`, 'error');
+        } finally {
+            // Restore button state
+            syncBtn.querySelector('i').className = originalIcon;
+            syncBtn.disabled = false;
+        }
     },
 
     // Mostra modal prompt salvati
