@@ -320,6 +320,13 @@
                                     </select>
                                 </div>
                             </div>
+
+                            <div class="mt-4">
+                                <label class="inline-flex items-center space-x-2 text-sm">
+                                    <input type="checkbox" id="torsoCoversLower" class="form-checkbox h-4 w-4" checked />
+                                    <span>Considera <strong>dress</strong> (se selezionato nei Bottoms) come TORSO se non è presente un "Tipo Abito"</span>
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Upper Body -->
@@ -389,6 +396,69 @@
                                     <option value="denim-jacket">Giacca di Jeans</option>
                                     <option value="cardigan">Cardigan</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- Torso / Full Body Garments -->
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
+                                <i class="fas fa-female text-purple-400"></i>
+                                <span>👗 Torso & Abiti</span>
+                            </h3>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Tipo Abito</label>
+                                    <select id="torsoGarment" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
+                                        <option value="none" selected>Nessuno</option>
+                                        <option value="dress">Vestito</option>
+                                        <option value="jumpsuit">Tuta</option>
+                                        <option value="romper">Pagliaccetto</option>
+                                        <option value="overall">Salopette</option>
+                                        <option value="bodysuit">Body</option>
+                                        <option value="corset-dress">Abito Corsetto</option>
+                                        <option value="tunic">Tunica</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Stile</label>
+                                    <select id="torsoStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
+                                        <option value="fitted">Aderente</option>
+                                        <option value="loose">Ampio</option>
+                                        <option value="a-line">A-Line</option>
+                                        <option value="empire">Imperio</option>
+                                        <option value="wrap">Avvolgente</option>
+                                        <option value="shift">Dritto</option>
+                                        <option value="bodycon">Fasciante</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Lunghezza</label>
+                                    <select id="torsoLength" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
+                                        <option value="mini">Mini</option>
+                                        <option value="above-knee">Sopra il Ginocchio</option>
+                                        <option value="knee">Al Ginocchio</option>
+                                        <option value="midi">Midi</option>
+                                        <option value="below-knee">Sotto il Ginocchio</option>
+                                        <option value="maxi">Lungo</option>
+                                        <option value="floor">Fino a Terra</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Scollatura</label>
+                                    <select id="neckline" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
+                                        <option value="crew">Girocollo</option>
+                                        <option value="v-neck">Scollo a V</option>
+                                        <option value="scoop">Scollato</option>
+                                        <option value="off-shoulder">Spalle Scoperte</option>
+                                        <option value="strapless">Senza Spalline</option>
+                                        <option value="halter">Halter</option>
+                                        <option value="deep-v">Scollo Profondo</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 

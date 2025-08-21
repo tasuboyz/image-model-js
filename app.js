@@ -410,6 +410,34 @@ const Storage = {
         return newPrompt;
     },
 
+    // Sincronizza i prompt dal server e li salva nel localStorage
+    async syncFromServer() {
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/prompts/saved`);
+            if (!res.ok) throw new Error('Server returned ' + res.status);
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.prompts)) {
+                // Trasforma il payload nel formato locale
+                const saved = { prompts: data.prompts.map(p => ({
+                    id: String(p.id),
+                    name: p.name,
+                    prompt: p.prompt,
+                    formData: p.form_data || p.formData || {},
+                    timestamp: p.created_at || p.timestamp || new Date().toISOString()
+                })) };
+
+                // Mantieni massimo 50 lato client
+                saved.prompts = saved.prompts.slice(0, 50);
+                this.save(saved);
+                return saved.prompts;
+            }
+            return null;
+        } catch (err) {
+            console.warn('Failed to sync prompts from server:', err);
+            return null;
+        }
+    },
+
     // Carica prompt salvati
     getSavedPrompts() {
         const saved = this.load();
@@ -631,21 +659,46 @@ const PromptGenerator = {
             outfitParts.push(intimateDesc);
         }
         
-        // Upper body main
-        if (data.upperBodyMain && data.upperBodyMain !== 'none') {
-            let upperDesc = '';
+        // Torso / Full body garments (takes priority over separate pieces)
+        if (data.torsoGarment && data.torsoGarment !== 'none') {
+            let torsoDesc = '';
             
-            if (data.primaryColor && data.intimate === 'none') {
-                upperDesc += `${data.primaryColor} `;
+            if (data.primaryColor) {
+                torsoDesc += `${data.primaryColor} `;
             }
             
-            upperDesc += data.upperBodyMain;
-            
-            if (data.sleeves && data.sleeves !== 'sleeveless') {
-                upperDesc += ` with ${data.sleeves} sleeves`;
+            if (data.torsoStyle) {
+                torsoDesc += `${data.torsoStyle} `;
             }
             
-            outfitParts.push(upperDesc);
+            if (data.torsoGarment === 'dress') {
+                torsoDesc += 'dress';
+            } else {
+                torsoDesc += data.torsoGarment;
+            }
+            
+            if (data.torsoLength) {
+                torsoDesc += ` (${data.torsoLength})`;
+            }
+            
+            outfitParts.push(torsoDesc);
+        } else {
+            // Upper body main (only if no torso garment)
+            if (data.upperBodyMain && data.upperBodyMain !== 'none') {
+                let upperDesc = '';
+                
+                if (data.primaryColor && data.intimate === 'none') {
+                    upperDesc += `${data.primaryColor} `;
+                }
+                
+                upperDesc += data.upperBodyMain;
+                
+                if (data.sleeves && data.sleeves !== 'sleeveless') {
+                    upperDesc += ` with ${data.sleeves} sleeves`;
+                }
+                
+                outfitParts.push(upperDesc);
+            }
         }
         
         // Outerwear
@@ -653,24 +706,26 @@ const PromptGenerator = {
             outfitParts.push(`${data.outerwear}`);
         }
         
-        // Lower body
-        if (data.bottomsType && data.bottomsType !== 'none') {
-            let lowerDesc = '';
-            
-            if (data.primaryColor && !data.intimate) {
-                lowerDesc += `${data.primaryColor} `;
-            }
-            
-            if (data.bottomsType === 'dress') {
-                lowerDesc += `${data.bottomsStyle || ''} dress`.trim();
-            } else {
-                lowerDesc += data.bottomsType;
-                if (data.bottomsStyle) {
-                    lowerDesc += ` (${data.bottomsStyle})`;
+        // Lower body (only if no full-body torso garment)
+        if (!data.torsoGarment || data.torsoGarment === 'none') {
+            if (data.bottomsType && data.bottomsType !== 'none') {
+                let lowerDesc = '';
+                
+                if (data.primaryColor && !data.intimate) {
+                    lowerDesc += `${data.primaryColor} `;
                 }
+                
+                if (data.bottomsType === 'dress') {
+                    lowerDesc += `${data.bottomsStyle || ''} dress`.trim();
+                } else {
+                    lowerDesc += data.bottomsType;
+                    if (data.bottomsStyle) {
+                        lowerDesc += ` (${data.bottomsStyle})`;
+                    }
+                }
+                
+                outfitParts.push(lowerDesc);
             }
-            
-            outfitParts.push(lowerDesc);
         }
         
         // Lower intimate
@@ -870,7 +925,18 @@ const UI = {
         this.setupModals();
         this.updateGenderVisibility();
         this.loadAutoSave();
-        this.updateSavedPromptsList();
+        // Try to sync saved prompts from server on init, then refresh UI
+        try {
+            Storage.syncFromServer().then((prompts) => {
+                // If server returned prompts, refresh the displayed list
+                this.updateSavedPromptsList();
+            }).catch(() => {
+                // On error, just update with local data
+                this.updateSavedPromptsList();
+            });
+        } catch (e) {
+            this.updateSavedPromptsList();
+        }
     },
 
     // Setup tabs
@@ -915,6 +981,28 @@ const UI = {
                 this.handleFormChange();
             });
         });
+
+        // Ensure torso selects specifically trigger immediate updates (works around any edge cases)
+        ['torsoGarment', 'torsoStyle', 'torsoLength', 'neckline'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const handler = () => {
+                    // Debug: log the change event and new value
+                    try { console.debug('TORSO CHANGE:', id, el.value); } catch (e) {}
+
+                    // Force immediate update path (non-debounced) for troubleshooting
+                    this.collectFormData();
+                    this.generateAndUpdatePreview();
+                    this.updateClothingMap();
+                    this.updateProgress();
+                    this.updateGenderVisibility();
+                    try { Storage.autoSave(appState.formData); } catch (e) {}
+                };
+
+                el.addEventListener('change', handler);
+                el.addEventListener('input', handler);
+            }
+        });
     },
 
     // Gestisce cambiamenti nel form
@@ -937,11 +1025,24 @@ const UI = {
         inputs.forEach(input => {
             if (input.type === 'number') {
                 formData[input.id] = parseInt(input.value) || 0;
+            } else if (input.type === 'checkbox') {
+                formData[input.id] = input.checked;
             } else {
                 formData[input.id] = input.value;
             }
         });
         
+        // Lightweight debug: ensure torso values are collected
+        // (removed in production) -- logs only when console is open
+        try {
+            console.debug('collectFormData torso:', {
+                torsoGarment: formData.torsoGarment,
+                torsoStyle: formData.torsoStyle,
+                torsoLength: formData.torsoLength,
+                neckline: formData.neckline
+            });
+        } catch (e) {}
+
         appState.formData = formData;
         return formData;
     },
@@ -949,6 +1050,7 @@ const UI = {
     // Genera e aggiorna preview
     generateAndUpdatePreview() {
         const prompt = PromptGenerator.generate(appState.formData);
+    try { console.debug('GENERATED PROMPT:', prompt); } catch (e) {}
         const stats = PromptGenerator.getStats(prompt);
         
         // Update preview
@@ -998,6 +1100,7 @@ const UI = {
             mapLegs: this.getLegsDescription(),
             mapFeet: this.getFeetDescription()
         };
+    try { console.debug('CLOTHING MAP DESCRIPTIONS:', mapElements); } catch (e) {}
         
         Object.entries(mapElements).forEach(([elementId, description]) => {
             const element = document.getElementById(elementId);
@@ -1044,9 +1147,23 @@ const UI = {
     },
 
     getTorsoDescription() {
-        if (appState.formData.bottomsType === 'dress') {
+        if (appState.formData.torsoGarment && appState.formData.torsoGarment !== 'none') {
+            let desc = appState.formData.torsoGarment;
+            if (appState.formData.torsoStyle) {
+                desc = `${appState.formData.torsoStyle} ${desc}`;
+            }
+            if (appState.formData.torsoLength) {
+                desc += ` (${appState.formData.torsoLength})`;
+            }
+            return desc;
+        }
+
+        // Fallback for backwards compatibility with old dress logic
+        // Controlled by user setting `torsoCoversLower` (default true in UI)
+        if (appState.formData.torsoCoversLower && appState.formData.bottomsType === 'dress') {
             return `${appState.formData.bottomsStyle || ''} dress`.trim();
         }
+
         return null;
     },
 
@@ -1300,20 +1417,51 @@ const UI = {
     // Salva prompt corrente
     saveCurrentPrompt() {
         const prompt = document.getElementById('promptPreview').textContent;
-        if (prompt && !prompt.includes('Compila il form')) {
-            const name = prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '');
-            
-            const savedPrompt = Storage.savePrompt({
-                name: name,
-                prompt: prompt,
-                formData: appState.formData
-            });
-            
-            this.updateSavedPromptsList();
-            this.showToast('Prompt salvato!', 'success');
-        } else {
+        if (!prompt || prompt.includes('Compila il form')) {
             this.showToast('Nessun prompt da salvare', 'warning');
+            return;
         }
+
+        // Ask user for a title
+        let name = window.prompt('Inserisci un titolo per il prompt:', prompt.substring(0, 50));
+        if (name === null) return; // cancelled
+        name = name.trim() || (prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''));
+
+        const payload = {
+            name: name,
+            prompt: prompt,
+            form_data: appState.formData
+        };
+
+        // Try saving to server first
+        fetch(`${CONFIG.API_BASE_URL}/prompts/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => res.json()).then(data => {
+            if (data && data.success) {
+                // Save returned id into local copy for consistency
+                const savedLocal = Storage.load() || {};
+                if (!Array.isArray(savedLocal.prompts)) savedLocal.prompts = [];
+                savedLocal.prompts.unshift({
+                    id: String(data.id),
+                    name: name,
+                    prompt: prompt,
+                    formData: appState.formData,
+                    timestamp: new Date().toISOString()
+                });
+                Storage.save(savedLocal);
+                this.updateSavedPromptsList();
+                this.showToast('Prompt salvato sul server!', 'success');
+            } else {
+                throw new Error('Server save failed');
+            }
+        }).catch(err => {
+            console.warn('Server save failed, falling back to localStorage:', err);
+            Storage.savePrompt({ name: name, prompt: prompt, formData: appState.formData });
+            this.updateSavedPromptsList();
+            this.showToast('Server non disponibile: salvato localmente', 'warning');
+        });
     },
 
     // Auto-save
