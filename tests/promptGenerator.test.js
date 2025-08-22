@@ -1,312 +1,383 @@
-// =============================================================================
-// PROMPT GENERATOR TESTS - Unit tests for the PromptGenerator module
-// =============================================================================
+/**
+ * PromptGenerator Unit Tests
+ * Comprehensive tests for the prompt generation functionality
+ */
 
-// Import the module (for Node.js environment)
-let PromptGenerator;
-if (typeof require !== 'undefined') {
-    PromptGenerator = require('../promptGenerator.js');
-} else {
-    // For browser environment, PromptGenerator should be globally available
-    if (typeof window !== 'undefined' && window.PromptGenerator) {
-        PromptGenerator = window.PromptGenerator;
-    }
-}
+import PromptGenerator from '../src/lib/promptGenerator.js';
 
-// Simple test runner
 class TestRunner {
     constructor() {
         this.tests = [];
-        this.passed = 0;
-        this.failed = 0;
+        this.results = [];
     }
 
-    test(name, fn) {
-        this.tests.push({ name, fn });
+    /**
+     * Add a test case
+     */
+    test(name, testFunction) {
+        this.tests.push({ name, testFunction });
     }
 
-    run() {
-        console.log('='.repeat(60));
-        console.log('RUNNING PROMPT GENERATOR TESTS');
-        console.log('='.repeat(60));
-
-        for (const test of this.tests) {
-            try {
-                test.fn();
-                console.log(`✅ ${test.name}`);
-                this.passed++;
-            } catch (error) {
-                console.log(`❌ ${test.name}`);
-                console.log(`   Error: ${error.message}`);
-                this.failed++;
-            }
-        }
-
-        console.log('='.repeat(60));
-        console.log(`RESULTS: ${this.passed} passed, ${this.failed} failed`);
-        console.log('='.repeat(60));
-
-        return this.failed === 0;
-    }
-
+    /**
+     * Assert function for tests
+     */
     assert(condition, message) {
         if (!condition) {
             throw new Error(message || 'Assertion failed');
         }
     }
 
+    /**
+     * Assert equality
+     */
     assertEqual(actual, expected, message) {
         if (actual !== expected) {
-            throw new Error(message || `Expected "${expected}", got "${actual}"`);
+            throw new Error(message || `Expected ${expected}, got ${actual}`);
         }
     }
 
-    assertContains(text, substring, message) {
-        if (!text.includes(substring)) {
-            throw new Error(message || `Expected "${text}" to contain "${substring}"`);
+    /**
+     * Assert that value contains substring
+     */
+    assertContains(haystack, needle, message) {
+        if (!haystack.includes(needle)) {
+            throw new Error(message || `Expected "${haystack}" to contain "${needle}"`);
         }
     }
 
-    assertNotContains(text, substring, message) {
-        if (text.includes(substring)) {
-            throw new Error(message || `Expected "${text}" to not contain "${substring}"`);
+    /**
+     * Assert that array includes value
+     */
+    assertIncludes(array, value, message) {
+        if (!array.includes(value)) {
+            throw new Error(message || `Expected array to include ${value}`);
+        }
+    }
+
+    /**
+     * Run all tests
+     */
+    async run() {
+        console.log(`🧪 Running ${this.tests.length} tests...\n`);
+
+        for (const { name, testFunction } of this.tests) {
+            try {
+                await testFunction();
+                this.results.push({ name, success: true });
+                console.log(`✅ ${name}`);
+            } catch (error) {
+                this.results.push({ name, success: false, error: error.message });
+                console.log(`❌ ${name}: ${error.message}`);
+            }
+        }
+
+        this.printSummary();
+    }
+
+    /**
+     * Print test summary
+     */
+    printSummary() {
+        const passed = this.results.filter(r => r.success).length;
+        const failed = this.results.filter(r => !r.success).length;
+
+        console.log('\n📊 Test Summary:');
+        console.log(`   Passed: ${passed}`);
+        console.log(`   Failed: ${failed}`);
+        console.log(`   Total: ${this.results.length}`);
+
+        if (failed > 0) {
+            console.log('\n❌ Failed Tests:');
+            this.results
+                .filter(r => !r.success)
+                .forEach(r => console.log(`   - ${r.name}: ${r.error}`));
+            
+            process.exit(1);
+        } else {
+            console.log('\n🎉 All tests passed!');
         }
     }
 }
 
-// Create test runner instance
+// Test suite
 const runner = new TestRunner();
 
-// Test basic functionality
-runner.test('should generate basic prompt with identity only', () => {
+// Basic prompt generation tests
+runner.test('Should generate basic prompt with minimal data', () => {
+    const generator = new PromptGenerator();
     const formData = {
-        identity: {
-            age: '25',
-            gender: 'female'
-        }
+        identity: { age: 25, gender: 'female' },
+        appearance: {},
+        outfit: {},
+        scene: {}
     };
+
+    const result = generator.generate(formData);
     
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, '25 years old');
-    runner.assertContains(result.prompt, 'female');
-    runner.assert(result.characterCount > 0, 'Should have character count');
+    runner.assert(result.prompt, 'Should return a prompt');
+    runner.assertContains(result.prompt, 'female', 'Should include gender');
+    runner.assertContains(result.prompt, '25 years old', 'Should include formatted age');
 });
 
-// Test appearance generation
-runner.test('should generate appearance with color mapping', () => {
+runner.test('Should generate comprehensive prompt with all sections', () => {
+    const generator = new PromptGenerator();
     const formData = {
+        identity: {
+            age: 28,
+            gender: 'female',
+            ethnicity: 'asian',
+            profession: 'doctor'
+        },
         appearance: {
+            bodyType: 'slim',
+            height: 'tall',
+            hairLength: 'long',
+            hairStyle: 'wavy',
             hairColor: 'black',
-            eyeColor: 'blue',
-            skinTone: 'fair'
-        }
-    };
-    
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, 'black hair'); // English colors now
-    runner.assertContains(result.prompt, 'blue eyes');  // English colors now
-    runner.assertContains(result.prompt, 'fair');
-});
-
-// Test dress/torso logic
-runner.test('should handle dress without lower when torsoCoversLower is true', () => {
-    const formData = {
-        clothing: {
+            eyeColor: 'brown',
+            skinTone: 'fair',
+            makeup: 'natural'
+        },
+        outfit: {
             torso: 'dress',
             torsoColor: 'red',
-            lower: 'pants',
-            lowerColor: 'blue',
-            torsoCoversLower: true
+            torsoLength: 'midi',
+            neckline: 'v-neck',
+            footwear: 'heels',
+            footwearColor: 'black',
+            heelHeight: '4"',
+            accessories: 'pearl necklace'
+        },
+        scene: {
+            pose: 'standing',
+            location: 'office',
+            time: 'morning',
+            mood: 'professional',
+            lighting: 'natural',
+            shotType: 'full-body'
         }
     };
+
+    const result = generator.generate(formData);
     
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, 'dress');
-    runner.assertContains(result.prompt, 'red dress'); // English colors now
-    runner.assertNotContains(result.prompt, 'pants');
-    runner.assertNotContains(result.prompt, 'blue');
+    // Check identity section
+    runner.assertContains(result.prompt, 'female', 'Should include gender');
+    runner.assertContains(result.prompt, '28 years old', 'Should include age');
+    runner.assertContains(result.prompt, 'asian', 'Should include ethnicity');
+    runner.assertContains(result.prompt, 'doctor', 'Should include profession');
+    
+    // Check appearance section
+    runner.assertContains(result.prompt, 'tall slim build', 'Should include body description');
+    runner.assertContains(result.prompt, 'long wavy black hair', 'Should include hair description');
+    runner.assertContains(result.prompt, 'brown eyes', 'Should include eye color');
+    runner.assertContains(result.prompt, 'fair skin', 'Should include skin tone');
+    
+    // Check outfit section
+    runner.assertContains(result.prompt, 'wearing', 'Should include wearing');
+    runner.assertContains(result.prompt, 'red midi dress', 'Should include dress description');
+    runner.assertContains(result.prompt, 'v neck', 'Should include neckline');
+    runner.assertContains(result.prompt, 'black heels', 'Should include footwear');
+    runner.assertContains(result.prompt, 'pearl necklace', 'Should include accessories');
+    
+    // Check scene section
+    runner.assertContains(result.prompt, 'standing', 'Should include pose');
+    runner.assertContains(result.prompt, 'office', 'Should include location');
+    runner.assertContains(result.prompt, 'morning', 'Should include time');
+    runner.assertContains(result.prompt, 'professional', 'Should include mood');
 });
 
-// Test dress/torso logic - should include lower when torsoCoversLower is false
-runner.test('should include lower clothing when dress does not cover', () => {
+runner.test('Should handle dress that covers lower body', () => {
+    const generator = new PromptGenerator();
     const formData = {
-        clothing: {
+        identity: { gender: 'female' },
+        appearance: {},
+        outfit: {
             torso: 'dress',
-            torsoColor: 'red',
-            lower: 'pants',
-            lowerColor: 'blue',
-            torsoCoversLower: false
-        }
+            torsoColor: 'blue',
+            lower: 'pants', // Should be ignored since dress covers lower
+            lowerColor: 'black'
+        },
+        scene: {}
     };
+
+    const result = generator.generate(formData);
     
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, 'dress');
-    runner.assertContains(result.prompt, 'pants');
+    runner.assertContains(result.prompt, 'blue dress', 'Should include dress');
+    runner.assert(!result.prompt.includes('pants'), 'Should not include pants when wearing dress');
 });
 
-// Test maxi dress logic
-runner.test('should handle maxi dress as covering lower', () => {
+runner.test('Should generate clothing map correctly', () => {
+    const generator = new PromptGenerator();
     const formData = {
-        clothing: {
-            torso: 'maxi dress',
-            lower: 'leggings',
-            torsoCoversLower: true
-        }
-    };
-    
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, 'maxi dress');
-    runner.assertNotContains(result.prompt, 'leggings');
-});
-
-// Test complete outfit
-runner.test('should generate complete outfit with all elements', () => {
-    const formData = {
-        identity: {
-            age: '30',
-            gender: 'female'
-        },
-        appearance: {
-            hairColor: 'brown',
-            eyeColor: 'green'
-        },
-        clothing: {
+        identity: {},
+        appearance: {},
+        outfit: {
             torso: 'blouse',
             torsoColor: 'white',
+            lower: 'pants',
+            lowerColor: 'black',
+            footwear: 'heels',
+            footwearColor: 'red',
+            heelHeight: '3"'
+        },
+        scene: {}
+    };
+
+    const result = generator.generate(formData);
+    
+    runner.assert(Array.isArray(result.clothingMap), 'Should return clothing map array');
+    runner.assert(result.clothingMap.length === 6, 'Should have 6 clothing areas');
+    
+    // Check specific areas
+    const torsoArea = result.clothingMap.find(area => area.area === 'torso');
+    runner.assert(torsoArea, 'Should have torso area');
+    runner.assertContains(torsoArea.display, 'white blouse', 'Should include torso item');
+    
+    const lowerArea = result.clothingMap.find(area => area.area === 'lower');
+    runner.assert(lowerArea, 'Should have lower area');
+    runner.assertContains(lowerArea.display, 'black pants', 'Should include lower item');
+    
+    const feetArea = result.clothingMap.find(area => area.area === 'feet');
+    runner.assert(feetArea, 'Should have feet area');
+    runner.assertContains(feetArea.display, 'red heels (3")', 'Should include footwear with heel height');
+});
+
+runner.test('Should handle sensitive fields when includeSensitive is false', () => {
+    const generator = new PromptGenerator({ includeSensitive: false });
+    const formData = {
+        identity: {
+            age: 25,
+            gender: 'female',
+            braCup: 'C',
+            bustSize: 'large'
+        },
+        appearance: {},
+        outfit: {},
+        scene: {}
+    };
+
+    const result = generator.generate(formData);
+    
+    runner.assertContains(result.prompt, 'female', 'Should include gender');
+    runner.assert(!result.prompt.includes('C cup'), 'Should not include bra cup');
+    runner.assert(!result.prompt.includes('large bust'), 'Should not include bust size');
+});
+
+runner.test('Should include sensitive fields when includeSensitive is true', () => {
+    const generator = new PromptGenerator({ includeSensitive: true });
+    const formData = {
+        identity: {
+            age: 25,
+            gender: 'female',
+            braCup: 'C',
+            bustSize: 'large'
+        },
+        appearance: {},
+        outfit: {},
+        scene: {}
+    };
+
+    const result = generator.generate(formData);
+    
+    runner.assertContains(result.prompt, 'C cup', 'Should include bra cup');
+    runner.assertContains(result.prompt, 'large bust', 'Should include bust size');
+});
+
+runner.test('Should normalize values correctly', () => {
+    const generator = new PromptGenerator();
+    const formData = {
+        identity: { gender: 'female' },
+        appearance: {
+            bodyType: 'plus-size', // Should be normalized to "plus size"
+            hairStyle: 'pony-tail' // Should be normalized to "pony tail"
+        },
+        outfit: {
+            torso: 't-shirt', // Should be normalized to "t shirt"
+            neckline: 'v-neck' // Should be normalized to "v neck"
+        },
+        scene: {
+            shotType: 'full-body' // Should be normalized to "full body"
+        }
+    };
+
+    const result = generator.generate(formData);
+    
+    runner.assertContains(result.prompt, 'plus size', 'Should normalize plus-size');
+    runner.assertContains(result.prompt, 'pony tail', 'Should normalize pony-tail');
+    runner.assertContains(result.prompt, 't shirt', 'Should normalize t-shirt');
+    runner.assertContains(result.prompt, 'v neck', 'Should normalize v-neck');
+    runner.assertContains(result.prompt, 'full body', 'Should normalize full-body');
+});
+
+runner.test('Should handle empty or null values gracefully', () => {
+    const generator = new PromptGenerator();
+    const formData = {
+        identity: { age: null, gender: '', profession: undefined },
+        appearance: { bodyType: '', hairColor: null },
+        outfit: { torso: '', accessories: null },
+        scene: { pose: '', background: undefined }
+    };
+
+    const result = generator.generate(formData);
+    
+    runner.assert(result.prompt, 'Should return a prompt even with empty values');
+    runner.assert(result.clothingMap, 'Should return clothing map even with empty values');
+    runner.assert(Array.isArray(result.clothingMap), 'Clothing map should be an array');
+});
+
+runner.test('Should generate preview patch for field changes', () => {
+    const generator = new PromptGenerator();
+    const formData = {
+        identity: { age: 25, gender: 'female' },
+        appearance: { hairColor: 'brown' },
+        outfit: { torso: 'dress', torsoColor: 'red' },
+        scene: { pose: 'standing' }
+    };
+
+    const result = generator.generatePreviewPatch('outfit.torsoColor', formData);
+    
+    runner.assert(result.fragment, 'Should return fragment');
+    runner.assert(result.clothingMap, 'Should return clothing map');
+    runner.assertContains(result.fragment, 'red dress', 'Should include updated color');
+});
+
+runner.test('Should update options correctly', () => {
+    const generator = new PromptGenerator({ includeSensitive: false });
+    
+    runner.assertEqual(generator.options.includeSensitive, false, 'Initial option should be false');
+    
+    generator.updateOptions({ includeSensitive: true, language: 'it' });
+    
+    runner.assertEqual(generator.options.includeSensitive, true, 'Should update includeSensitive');
+    runner.assertEqual(generator.options.language, 'it', 'Should update language');
+});
+
+runner.test('Should handle complex outfit combinations', () => {
+    const generator = new PromptGenerator();
+    const formData = {
+        identity: { gender: 'female' },
+        appearance: {},
+        outfit: {
+            torso: 'blouse',
+            torsoColor: 'white',
+            neckline: 'v-neck',
             lower: 'skirt',
             lowerColor: 'black',
             footwear: 'heels',
             footwearColor: 'red',
-            accessories: 'pearl necklace'
+            heelHeight: '4"',
+            accessories: 'pearl necklace, designer bag',
+            outerwear: 'blazer'
         },
-        scene: {
-            location: 'office',
-            lighting: 'natural'
-        }
+        scene: {}
     };
+
+    const result = generator.generate(formData);
     
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, '30 years old');
-    runner.assertContains(result.prompt, 'brown hair'); // English colors now
-    runner.assertContains(result.prompt, 'green eyes');   // English colors now
-    runner.assertContains(result.prompt, 'blouse');
-    runner.assertContains(result.prompt, 'white blouse');  // English colors now
-    runner.assertContains(result.prompt, 'skirt');
-    runner.assertContains(result.prompt, 'black skirt');    // English colors now
-    runner.assertContains(result.prompt, 'office');
-    runner.assert(result.layers >= 3, 'Should have multiple layers');
+    runner.assertContains(result.prompt, 'wearing white blouse with v neck, black skirt, red heels (4")', 'Should combine outfit pieces correctly');
+    runner.assertContains(result.prompt, 'and pearl necklace, designer bag', 'Should include accessories');
+    runner.assertContains(result.prompt, 'with blazer', 'Should include outerwear');
 });
 
-// Test empty form data
-runner.test('should handle empty form data gracefully', () => {
-    const formData = {};
-    
-    const result = PromptGenerator.generate(formData);
-    runner.assertContains(result.prompt, 'Please fill the form');
-    runner.assertEqual(result.characterCount, result.prompt.length);
-    runner.assertEqual(result.layers, 0);
-});
-
-// Test complexity calculation
-runner.test('should calculate complexity correctly', () => {
-    const simpleFormData = {
-        identity: { gender: 'male' }
-    };
-    
-    const complexFormData = {
-        identity: { age: '25', gender: 'female', profession: 'doctor' },
-        appearance: { hairColor: 'black', eyeColor: 'blue', skinTone: 'fair' },
-        clothing: { 
-            torso: 'dress', 
-            torsoColor: 'red',
-            footwear: 'heels',
-            accessories: 'jewelry'
-        },
-        scene: { 
-            location: 'office',
-            lighting: 'dramatic',
-            mood: 'professional'
-        }
-    };
-    
-    const simpleResult = PromptGenerator.generate(simpleFormData);
-    const complexResult = PromptGenerator.generate(complexFormData);
-    
-    // Debug output
-    console.log('Simple result:', simpleResult.prompt, 'Length:', simpleResult.characterCount, 'Complexity:', simpleResult.complexity);
-    console.log('Complex result:', complexResult.prompt, 'Length:', complexResult.characterCount, 'Complexity:', complexResult.complexity);
-    
-    runner.assert(simpleResult.complexity === 'simple', `Simple data should have simple complexity, got ${simpleResult.complexity}`);
-    runner.assert(complexResult.complexity === 'complex' || complexResult.complexity === 'medium', `Complex data should have complex or medium complexity, got ${complexResult.complexity}`);
-    runner.assert(complexResult.characterCount > simpleResult.characterCount, 'Complex prompt should be longer');
-});
-
-// Test color mapping - now tests English colors
-runner.test('should use English colors correctly', () => {
-    const colors = [
-        'black',
-        'white', 
-        'red',
-        'blue',
-        'green',
-        'yellow'
-    ];
-    
-    for (const color of colors) {
-        const formData = {
-            clothing: {
-                torso: 'shirt',
-                torsoColor: color
-            }
-        };
-        
-        const result = PromptGenerator.generate(formData);
-        runner.assertContains(result.prompt, `${color} shirt`, `Color ${color} should appear in English`);
-    }
-});
-
-// Test validation
-runner.test('should validate form data structure', () => {
-    const validData = {
-        identity: { age: '25' }
-    };
-    
-    const invalidData = null;
-    const emptyData = {};
-    
-    const validErrors = PromptGenerator.validateFormData(validData);
-    const invalidErrors = PromptGenerator.validateFormData(invalidData);
-    const emptyErrors = PromptGenerator.validateFormData(emptyData);
-    
-    runner.assertEqual(validErrors.length, 0, 'Valid data should have no errors');
-    runner.assert(invalidErrors.length > 0, 'Invalid data should have errors');
-    runner.assert(emptyErrors.length > 0, 'Empty data should have errors');
-});
-
-// Test supported colors - remove this test since we removed getSupportedColors()
-// runner.test('should provide supported colors list', () => {
-//     const colors = PromptGenerator.getSupportedColors();
-//     runner.assert(Array.isArray(colors), 'Should return an array');
-//     runner.assert(colors.length > 0, 'Should have supported colors');
-//     runner.assert(colors.includes('black'), 'Should include black');
-//     runner.assert(colors.includes('white'), 'Should include white');
-// });
-
-// Run all tests
-if (typeof module !== 'undefined' && require.main === module) {
-    // Running in Node.js
-    const success = runner.run();
-    process.exit(success ? 0 : 1);
-} else if (typeof window !== 'undefined') {
-    // Running in browser
-    window.runTests = () => runner.run();
-    console.log('Tests loaded. Run window.runTests() to execute.');
-} else {
-    // Default run
-    runner.run();
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined') {
-    module.exports = { TestRunner, runner };
-}
+// Run tests
+runner.run();
