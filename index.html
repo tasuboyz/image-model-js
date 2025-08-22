@@ -3,891 +3,681 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Prompt Builder - Outfit Consistente</title>
-    
-    <!-- TailwindCSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome per icone -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Custom Styles -->
+    <title>AI Image Model - Prompt Generator</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen gradient-bg text-white">
-    <!-- Header -->
-        <header class="site-header glass border-b border-white/10 mb-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 rounded-lg gradient-accent flex items-center justify-center pulse-glow">
-                    <i class="fas fa-magic text-white text-lg"></i>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">🎨 AI Prompt Generator</div>
+            <div class="header-controls">
+                <div class="preset-select-inline">
+                    <select id="loadPreset" class="control-btn">
+                        <option value="">Load Preset ▼</option>
+                    </select>
+                    <button id="presetDeleteBtnInline" class="preset-delete" title="Delete selected preset" disabled>🗑</button>
+                    <button id="managePresetsBtn" class="control-btn" title="Manage saved presets">Manage</button>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-bold">Image Prompt Builder</h1>
-                    <p class="text-sm text-white/70">Crea outfit consistenti per modelli umani</p>
-                </div>
+                <label class="control-btn" style="display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="includeSensitive"> Include Sensitive
+                </label>
+                <button id="saveBtn" class="control-btn">Save</button>
+                <button id="exportBtn" class="control-btn">Export</button>
+                <button id="clearBtn" class="control-btn">Clear</button>
+                <button id="themeToggle" class="control-btn">🌙</button>
             </div>
-            
-            <div class="flex items-center space-x-3">
-                <!-- Native select kept for accessibility/logic but visually hidden; custom dropdown below provides themed UI -->
-                <select id="presetSelector" class="form-input px-3 py-2 rounded-lg text-white bg-transparent">
-                    <option value="">Seleziona Preset</option>
-                    <option value="professional">💼 Business Professional</option>
-                    <option value="casual">👕 Casual Everyday</option>
-                    <option value="evening">🌃 Elegant Evening</option>
-                    <option value="beach">🏖️ Beach Casual</option>
-                    <option value="athletic">🏃‍♀️ Athletic Wear</option>
-                    <option value="artistic">🎭 Artistic/Creative</option>
-                </select>
-                
-                <button id="saveBtn" class="btn-primary px-4 py-2 rounded-lg flex items-center space-x-2">
-                    <i class="fas fa-save"></i>
-                    <span>Salva</span>
-                </button>
-                
-                <button id="themeToggle" class="btn-secondary px-3 py-2 rounded-lg">
-                    <i class="fas fa-sun"></i>
-                </button>
+        </header>
 
-                <!-- Sidebar toggle to collapse/expand the form -->
-                <button id="sidebarToggle" class="btn-secondary px-3 py-2 rounded-lg" title="Mostra/Nascondi Form">
-                    <i class="fas fa-sliders-h"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="flex" style="min-height: calc(100vh - 64px);">
-        <!-- Left Sidebar - Form -->
-    <div id="sidebar" class="w-full md:w-2/5 lg:w-1/2 glass-dark border-r border-white/10 overflow-y-auto custom-scrollbar p-6 space-y-6 transition-all duration-300 ease-in-out" style="max-height: calc(100vh - 64px);">
-            <!-- Progress Bar -->
-            <div class="glass p-4 rounded-xl">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium">Completamento Form</span>
-                    <span id="progressText" class="text-sm text-white/70">0%</span>
-                </div>
-                <div class="w-full bg-white/20 rounded-full h-2">
-                    <div id="progressBar" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div class="flex space-x-1 glass p-1 rounded-xl">
-                <button class="tab-button active flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="identity">
-                    👤 Identità
-                </button>
-                <button class="tab-button flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="appearance">
-                    ✨ Aspetto
-                </button>
-                <button class="tab-button flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="clothing">
-                    👗 Outfit
-                </button>
-                <button class="tab-button flex-1 py-2 px-3 rounded-lg text-sm font-medium" data-tab="scene">
-                    🎬 Scena
-                </button>
-            </div>
-
-            <!-- Form Sections -->
-            <div id="formContainer" class="space-y-6">
-                <!-- Identity Tab -->
-                <div id="identityTab" class="tab-content">
-                    <div class="glass p-6 rounded-xl space-y-4">
-                        <h3 class="text-lg font-semibold flex items-center space-x-2">
-                            <i class="fas fa-user text-blue-400"></i>
-                            <span>Identità del Modello</span>
-                        </h3>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Età</label>
-                                <input type="number" id="age" min="18" max="65" value="24" class="form-input w-full px-3 py-2 rounded-lg text-white">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Genere</label>
-                                <select id="gender" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="female">Femminile</option>
-                                    <option value="male">Maschile</option>
-                                    <option value="non-binary">Non-binary</option>
-                                </select>
-                            </div>
+        <div class="main-content">
+            <!-- Form Sidebar -->
+            <div class="form-sidebar">
+                <!-- Identity Section -->
+                <div class="form-section">
+                    <h3>👤 IDENTITÀ (Identity)</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Age:</label>
+                            <input type="number" id="age" value="24" min="18" max="99">
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Altezza</label>
-                                <select id="height" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="150cm">150cm (4'11")</option>
-                                    <option value="160cm">160cm (5'3")</option>
-                                    <option value="170cm" selected>170cm (5'7")</option>
-                                    <option value="180cm">180cm (5'11")</option>
-                                    <option value="190cm">190cm (6'3")</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Costituzione</label>
-                                <select id="build" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="slim">Snella</option>
-                                    <option value="athletic" selected>Atletica</option>
-                                    <option value="curvy">Formosa</option>
-                                    <option value="muscular">Muscolosa</option>
-                                    <option value="average">Media</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Gender:</label>
+                            <select id="gender">
+                                <option value="female">Female</option>
+                                <option value="male">Male</option>
+                                <option value="non-binary">Non-binary</option>
+                            </select>
                         </div>
-                        
-                        <div id="femaleOptions" class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Taglia Seno</label>
-                                    <select id="bustSize" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="petite">Piccolo</option>
-                                        <option value="average">Medio</option>
-                                        <option value="full" selected>Prosperoso</option>
-                                        <option value="very-full">Molto Prosperoso</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Coppa Reggiseno</label>
-                                    <select id="braCup" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="AA">AA</option>
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="C" selected>C</option>
-                                        <option value="D">D</option>
-                                        <option value="DD">DD</option>
-                                        <option value="E">E</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label>Ethnicity:</label>
+                            <select id="ethnicity">
+                                <option value="">Select...</option>
+                                <option value="caucasian">Caucasian</option>
+                                <option value="asian">Asian</option>
+                                <option value="african">African</option>
+                                <option value="hispanic">Hispanic</option>
+                                <option value="middle-eastern">Middle Eastern</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Profession:</label>
+                            <input type="text" id="profession" placeholder="e.g., doctor, teacher">
+                        </div>
+                        <!-- sensitive breast fields moved to dedicated Breast Section below -->
+                        <div class="form-group full-width">
+                            <label>Tags:</label>
+                            <input type="text" id="tags" placeholder="vintage, edgy, elegant">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Notes:</label>
+                            <textarea id="notes" placeholder="Optional free text..."></textarea>
                         </div>
                     </div>
                 </div>
 
-                <!-- Appearance Tab -->
-                <div id="appearanceTab" class="tab-content hidden">
-                    <div class="glass p-6 rounded-xl space-y-4">
-                        <h3 class="text-lg font-semibold flex items-center space-x-2">
-                            <i class="fas fa-palette text-pink-400"></i>
-                            <span>Aspetto Fisico</span>
-                        </h3>
-                        
-                        <!-- Hair Section -->
-                        <div class="space-y-4">
-                            <h4 class="text-md font-semibold text-white/90">💇‍♀️ Capelli</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Colore</label>
-                                    <select id="hairColor" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="blonde">Biondo</option>
-                                        <option value="brunette">Castano</option>
-                                        <option value="black">Nero</option>
-                                        <option value="red" selected>Rosso/Auburn</option>
-                                        <option value="gray">Grigio</option>
-                                        <option value="silver">Argento</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Lunghezza</label>
-                                    <select id="hairLength" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="pixie">Pixie</option>
-                                        <option value="short">Corti</option>
-                                        <option value="shoulder">Alle Spalle</option>
-                                        <option value="long" selected>Lunghi</option>
-                                        <option value="very-long">Molto Lunghi</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Stile</label>
-                                    <select id="hairStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="straight">Lisci</option>
-                                        <option value="wavy" selected>Mossi/Ondulati</option>
-                                        <option value="curly">Ricci</option>
-                                        <option value="braided">Intrecciati</option>
-                                        <option value="updo">Raccolti</option>
-                                        <option value="ponytail">Coda di Cavallo</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Texture</label>
-                                    <select id="hairTexture" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="fine">Fini</option>
-                                        <option value="thick">Folti</option>
-                                        <option value="voluminous">Voluminosi</option>
-                                        <option value="sleek">Lisci/Setosi</option>
-                                    </select>
-                                </div>
-                            </div>
+                <!-- Appearance Section -->
+                <div class="form-section">
+                    <h3>✨ ASPETTO (Appearance)</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Body Type:</label>
+                            <select id="bodyType">
+                                <option value="">Select...</option>
+                                <option value="slim">Slim</option>
+                                <option value="athletic">Athletic</option>
+                                <option value="curvy">Curvy</option>
+                                <option value="petite">Petite</option>
+                                <option value="plus-size">Plus Size</option>
+                            </select>
                         </div>
-                        
-                        <!-- Skin & Eyes -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">👤 Carnagione</label>
-                                <select id="skinTone" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="pale">Pallida</option>
-                                    <option value="fair" selected>Chiara</option>
-                                    <option value="medium">Media</option>
-                                    <option value="olive">Olivastra</option>
-                                    <option value="tan">Abbronzata</option>
-                                    <option value="dark">Scura</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">👁️ Occhi</label>
-                                <select id="eyeColor" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="blue">Blu</option>
-                                    <option value="brown">Marroni</option>
-                                    <option value="green" selected>Verdi</option>
-                                    <option value="hazel">Nocciola</option>
-                                    <option value="gray">Grigi</option>
-                                    <option value="amber">Ambra</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Height:</label>
+                            <select id="height">
+                                <option value="">Select...</option>
+                                <option value="short">Short</option>
+                                <option value="average">Average</option>
+                                <option value="tall">Tall</option>
+                            </select>
                         </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-2">💄 Makeup</label>
-                            <select id="makeup" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                <option value="none">Nessuno</option>
-                                <option value="natural">Naturale</option>
-                                <option value="light">Leggero</option>
-                                <option value="bold">Marcato</option>
-                                <option value="dramatic">Drammatico</option>
+                        <div class="form-group">
+                            <label>Skin Tone:</label>
+                            <select id="skinTone">
+                                <option value="">Select...</option>
+                                <option value="fair">Fair</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="olive">Olive</option>
+                                <option value="tan">Tan</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Hair Length:</label>
+                            <select id="hairLength">
+                                <option value="">Select...</option>
+                                <option value="very-short">Very Short</option>
+                                <option value="short">Short</option>
+                                <option value="medium">Medium</option>
+                                <option value="long">Long</option>
+                                <option value="very-long">Very Long</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Hair Style:</label>
+                            <select id="hairStyle">
+                                <option value="">Select...</option>
+                                <option value="straight">Straight</option>
+                                <option value="wavy">Wavy</option>
+                                <option value="curly">Curly</option>
+                                <option value="braided">Braided</option>
+                                <option value="ponytail">Ponytail</option>
+                                <option value="bun">Bun</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Hair Color:</label>
+                            <select id="hairColor">
+                                <option value="">Select...</option>
+                                <option value="black">Black</option>
+                                <option value="brown">Brown</option>
+                                <option value="blonde">Blonde</option>
+                                <option value="red">Red</option>
+                                <option value="auburn">Auburn</option>
+                                <option value="gray">Gray</option>
+                                <option value="white">White</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Eye Color:</label>
+                            <select id="eyeColor">
+                                <option value="">Select...</option>
+                                <option value="brown">Brown</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                                <option value="hazel">Hazel</option>
+                                <option value="gray">Gray</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Makeup:</label>
+                            <select id="makeup">
+                                <option value="">None</option>
+                                <option value="natural">Natural</option>
+                                <option value="light">Light</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="heavy">Heavy</option>
+                                <option value="smokey">Smokey</option>
+                                <option value="dramatic">Dramatic</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Clothing Tab -->
-                <div id="clothingTab" class="tab-content hidden">
-                    <div class="space-y-4">
-                        <!-- Head & Accessories -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-hat-cowboy text-purple-400"></i>
-                                <span>🧢 Testa & Accessori</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Copricapo</label>
-                                    <select id="headwear" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none" selected>Nessuno</option>
-                                        <option value="hat">Cappello</option>
-                                        <option value="cap">Berretto</option>
-                                        <option value="beret">Basco</option>
-                                        <option value="headband">Fascia</option>
-                                        <option value="tiara">Tiara</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Accessori Capelli</label>
-                                    <select id="hairAccessories" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none" selected>Nessuno</option>
-                                        <option value="clip">Mollette</option>
-                                        <option value="ribbon">Nastro</option>
-                                        <option value="scrunchie">Elastico</option>
-                                        <option value="flowers">Fiori</option>
-                                        <option value="pins">Forcine</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Accessori Viso</label>
-                                    <select id="faceAccessories" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none" selected>Nessuno</option>
-                                        <option value="glasses">Occhiali</option>
-                                        <option value="sunglasses">Occhiali da Sole</option>
-                                        <option value="mask">Maschera</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Orecchini</label>
-                                    <select id="earrings" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="studs">Bottoni</option>
-                                        <option value="hoops">Cerchi</option>
-                                        <option value="dangling" selected>Pendenti</option>
-                                    </select>
-                                </div>
-                            </div>
+                <!-- Breasts Section (Sensitive) -->
+                <div class="form-section sensitive-field" id="breastSection" style="display: none;">
+                    <h3>SENO (Breasts) — Sensitive</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Bra Cup:</label>
+                            <select id="braCup">
+                                <option value="">Select...</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="DD">DD</option>
+                                <option value="E+">E+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Bust Size:</label>
+                            <select id="bustSize">
+                                <option value="">Select...</option>
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                                <option value="x-large">X-Large</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Breast Shape:</label>
+                            <select id="breastShape">
+                                <option value="">Select...</option>
+                                <option value="round">Round</option>
+                                <option value="teardrop">Teardrop</option>
+                                <option value="asymmetric">Asymmetric</option>
+                                <option value="ptotic">Ptotic</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cleavage:</label>
+                            <select id="cleavage">
+                                <option value="">Select...</option>
+                                <option value="none">None</option>
+                                <option value="slight">Slight</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="pronounced">Pronounced</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <small>Questi campi sono sensibili e vengono inclusi nel prompt solo se l'opzione "IncludeSensitive" è attiva.</small>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="mt-4">
-                                <label class="inline-flex items-center space-x-2 text-sm">
-                                    <input type="checkbox" id="torsoCoversLower" class="form-checkbox h-4 w-4" checked />
-                                    <span>Considera <strong>dress</strong> (se selezionato nei Bottoms) come TORSO se non è presente un "Tipo Abito"</span>
-                                </label>
+                <!-- Outfit Section -->
+                <div class="form-section">
+                    <h3>👗 OUTFIT (Clothing)</h3>
+                    <div class="tabs">
+                        <div class="tab-buttons">
+                            <button type="button" class="tab-button active" data-tab="tab-head">Head</button>
+                            <button type="button" class="tab-button" data-tab="tab-upper">Upper</button>
+                            <button type="button" class="tab-button" data-tab="tab-lower">Lower</button>
+                            <button type="button" class="tab-button" data-tab="tab-accessories">Accessories</button>
+                            <button type="button" class="tab-button" data-tab="tab-footwear">Footwear</button>
+                        </div>
+                        <div class="tab-panel active" id="tab-head">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Headwear:</label>
+                                    <select id="headwear">
+                                        <option value="">None</option>
+                                        <option value="hat">Hat</option>
+                                        <option value="fedora">Fedora</option>
+                                        <option value="beanie">Beanie</option>
+                                        <option value="cap">Cap</option>
+                                        <option value="beret">Beret</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Hair Accessories:</label>
+                                    <select id="hairAccessories">
+                                        <option value="">None</option>
+                                        <option value="ribbon">Ribbon</option>
+                                        <option value="clip">Clip</option>
+                                        <option value="headband">Headband</option>
+                                        <option value="scrunchie">Scrunchie</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Face Accessories:</label>
+                                    <select id="faceAccessories">
+                                        <option value="">None</option>
+                                        <option value="sunglasses">Sunglasses</option>
+                                        <option value="mask">Mask</option>
+                                        <option value="visor">Visor</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Upper Body -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-tshirt text-blue-400"></i>
-                                <span>👔 Parte Superiore</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Collo</label>
-                                    <select id="neckwear" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="necklace" selected>Collana</option>
-                                        <option value="choker">Choker</option>
-                                        <option value="scarf">Sciarpa</option>
-                                        <option value="tie">Cravatta</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Top Principale</label>
-                                    <select id="upperBodyMain" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="tshirt">T-shirt</option>
-                                        <option value="blouse">Camicetta</option>
-                                        <option value="shirt">Camicia</option>
-                                        <option value="tank">Canotta</option>
-                                        <option value="crop">Crop Top</option>
-                                        <option value="sweater">Maglione</option>
-                                        <option value="blazer">Blazer</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Maniche</label>
-                                    <select id="sleeves" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="sleeveless">Senza Maniche</option>
-                                        <option value="short">Corte</option>
-                                        <option value="three-quarter">3/4</option>
-                                        <option value="long">Lunghe</option>
-                                        <option value="bell">A Campana</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Intimo Superiore</label>
-                                    <select id="intimate" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="bra" selected>Reggiseno</option>
+                        <div class="tab-panel" id="tab-upper">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Upper Body Main (alias):</label>
+                                    <select id="upperBodyMain">
+                                        <option value="">None</option>
+                                        <option value="crop top">Crop Top</option>
+                                        <option value="corset">Corset</option>
                                         <option value="bralette">Bralette</option>
-                                        <option value="camisole">Sottoveste</option>
-                                        <option value="corset">Corsetto</option>
-                                        <option value="bustier">Bustier</option>
+                                        <option value="tank top">Tank Top</option>
                                     </select>
                                 </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Capospalla</label>
-                                <select id="outerwear" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="none" selected>Nessuno</option>
-                                    <option value="jacket">Giacca</option>
-                                    <option value="coat">Cappotto</option>
-                                    <option value="leather-jacket">Giacca di Pelle</option>
-                                    <option value="denim-jacket">Giacca di Jeans</option>
-                                    <option value="cardigan">Cardigan</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Torso / Full Body Garments -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-female text-purple-400"></i>
-                                <span>👗 Torso & Abiti</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Tipo Abito</label>
-                                    <select id="torsoGarment" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none" selected>Nessuno</option>
-                                        <option value="dress">Vestito</option>
-                                        <option value="jumpsuit">Tuta</option>
-                                        <option value="romper">Pagliaccetto</option>
-                                        <option value="overall">Salopette</option>
-                                        <option value="bodysuit">Body</option>
-                                        <option value="corset-dress">Abito Corsetto</option>
-                                        <option value="tunic">Tunica</option>
+                                <div class="form-group">
+                                    <label>Torso:</label>
+                                    <select id="torso">
+                                        <option value="">Select...</option>
+                                        <option value="dress">Dress</option>
+                                        <option value="blouse">Blouse</option>
+                                        <option value="shirt">Shirt</option>
+                                        <option value="t-shirt">T-Shirt</option>
+                                        <option value="jumpsuit">Jumpsuit (Tuta)</option>
+                                        <option value="tank-top">Tank Top</option>
+                                        <option value="sweater">Sweater</option>
+                                        <option value="jacket">Jacket</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Stile</label>
-                                    <select id="torsoStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="fitted">Aderente</option>
-                                        <option value="loose">Ampio</option>
-                                        <option value="a-line">A-Line</option>
-                                        <option value="empire">Imperio</option>
-                                        <option value="wrap">Avvolgente</option>
-                                        <option value="shift">Dritto</option>
-                                        <option value="bodycon">Fasciante</option>
+                                <div class="form-group">
+                                    <label>Torso Garment (alias):</label>
+                                    <select id="torsoGarment">
+                                        <option value="">None</option>
+                                        <option value="bodice">Bodice</option>
+                                        <option value="wrap">Wrap</option>
+                                        <option value="vest">Vest</option>
                                     </select>
                                 </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Lunghezza</label>
-                                    <select id="torsoLength" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="mini">Mini</option>
-                                        <option value="above-knee">Sopra il Ginocchio</option>
-                                        <option value="knee">Al Ginocchio</option>
-                                        <option value="midi">Midi</option>
-                                        <option value="below-knee">Sotto il Ginocchio</option>
-                                        <option value="maxi">Lungo</option>
-                                        <option value="floor">Fino a Terra</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Scollatura</label>
-                                    <select id="neckline" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="crew">Girocollo</option>
-                                        <option value="v-neck">Scollo a V</option>
-                                        <option value="scoop">Scollato</option>
-                                        <option value="off-shoulder">Spalle Scoperte</option>
-                                        <option value="strapless">Senza Spalline</option>
-                                        <option value="halter">Halter</option>
-                                        <option value="deep-v">Scollo Profondo</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Lower Body -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-user-secret text-green-400"></i>
-                                <span>👖 Parte Inferiore</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Tipo</label>
-                                    <select id="bottomsType" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="jeans">Jeans</option>
-                                        <option value="trousers">Pantaloni</option>
-                                        <option value="leggings">Leggings</option>
-                                        <option value="skirt">Gonna</option>
-                                        <option value="shorts">Shorts</option>
-                                        <option value="dress">Vestito</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Stile</label>
-                                    <select id="bottomsStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="fitted">Aderente</option>
-                                        <option value="loose">Largo</option>
-                                        <option value="skinny">Skinny</option>
-                                        <option value="wide-leg">Gamba Larga</option>
-                                        <option value="mini">Mini</option>
-                                        <option value="midi">Midi</option>
-                                        <option value="maxi">Lungo</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Intimo Inferiore</label>
-                                <select id="intimateLower" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="none">Nessuno</option>
-                                    <option value="panties" selected>Slip</option>
-                                    <option value="thong">Tanga</option>
-                                    <option value="boyshorts">Boxer Femminili</option>
-                                    <option value="garter">Con Reggicalze</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Legs & Footwear -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-socks text-yellow-400"></i>
-                                <span>👠 Gambe & Scarpe</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Calze/Collant</label>
-                                    <select id="legwear" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="pantyhose">Collant</option>
-                                        <option value="stockings" selected>Autoreggenti</option>
-                                        <option value="tights">Calzamaglie</option>
-                                        <option value="knee-highs">Gambaletti</option>
-                                        <option value="thigh-highs">Calze al Ginocchio</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Stile Calze</label>
-                                    <select id="legwearStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="sheer" selected>Trasparenti</option>
-                                        <option value="opaque">Coprenti</option>
-                                        <option value="fishnet">A Rete</option>
-                                        <option value="patterned">Fantasia</option>
-                                        <option value="colored">Colorate</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Scarpe</label>
-                                    <select id="shoeType" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="heels" selected>Tacchi</option>
-                                        <option value="flats">Ballerine</option>
-                                        <option value="sneakers">Sneakers</option>
-                                        <option value="boots">Stivali</option>
-                                        <option value="sandals">Sandali</option>
-                                        <option value="pumps">Décolleté</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Altezza Tacco</label>
-                                    <select id="heelHeight" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="flat">Piatto</option>
-                                        <option value="low">Basso (1-2")</option>
-                                        <option value="medium">Medio (2-3")</option>
-                                        <option value="high">Alto (3-4")</option>
-                                        <option value="very-high">Molto Alto (4"+)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Colors & Style -->
-                        <div class="glass p-6 rounded-xl">
-                            <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                                <i class="fas fa-palette text-pink-400"></i>
-                                <span>🎨 Colori & Stile</span>
-                            </h3>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Colore Principale</label>
-                                    <select id="primaryColor" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="black" selected>Nero</option>
-                                        <option value="white">Bianco</option>
-                                        <option value="red">Rosso</option>
-                                        <option value="blue">Blu</option>
-                                        <option value="green">Verde</option>
-                                        <option value="yellow">Giallo</option>
-                                        <option value="purple">Viola</option>
-                                        <option value="pink">Rosa</option>
-                                        <option value="gold">Oro</option>
-                                        <option value="silver">Argento</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Colore Secondario</label>
-                                    <select id="secondaryColor" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="none">Nessuno</option>
-                                        <option value="black">Nero</option>
-                                        <option value="white">Bianco</option>
-                                        <option value="red">Rosso</option>
-                                        <option value="blue">Blu</option>
-                                        <option value="green">Verde</option>
-                                        <option value="emerald" selected>Smeraldo</option>
-                                        <option value="gold">Oro</option>
-                                        <option value="silver">Argento</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Materiali</label>
-                                    <select id="fabrics" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                        <option value="lace" selected>Pizzo</option>
-                                        <option value="silk">Seta</option>
-                                        <option value="cotton">Cotone</option>
-                                        <option value="leather">Pelle</option>
-                                        <option value="satin">Raso</option>
-                                        <option value="velvet">Velluto</option>
-                                        <option value="mesh">Mesh</option>
-                                        <option value="sequins">Paillettes</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Stile Generale</label>
-                                    <select id="overallStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
+                                <div class="form-group">
+                                    <label>Torso Style:</label>
+                                    <select id="torsoStyle">
+                                        <option value="">None</option>
+                                        <option value="boho">Boho</option>
+                                        <option value="formal">Formal</option>
                                         <option value="casual">Casual</option>
-                                        <option value="business">Business</option>
-                                        <option value="formal">Formale</option>
-                                        <option value="evening">Elegante Sera</option>
-                                        <option value="sporty">Sportivo</option>
-                                        <option value="bohemian">Bohémien</option>
-                                        <option value="gothic">Gotico</option>
+                                        <option value="sporty">Sporty</option>
                                         <option value="vintage">Vintage</option>
-                                        <option value="lingerie" selected>Lingerie</option>
                                     </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fit (Aderente):</label>
+                                    <select id="torsoFit">
+                                        <option value="">Select...</option>
+                                        <option value="fitted">Fitted (Aderente)</option>
+                                        <option value="regular">Regular</option>
+                                        <option value="loose">Loose</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Torso Color:</label>
+                                    <select id="torsoColor">
+                                        <option value="">Select...</option>
+                                        <option value="white">White</option>
+                                        <option value="black">Black</option>
+                                        <option value="red">Red</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="green">Green</option>
+                                        <option value="yellow">Yellow</option>
+                                        <option value="pink">Pink</option>
+                                        <option value="purple">Purple</option>
+                                        <option value="brown">Brown</option>
+                                        <option value="gray">Gray</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Torso Length:</label>
+                                    <select id="torsoLength">
+                                        <option value="">Select...</option>
+                                        <option value="mini">Mini</option>
+                                        <option value="short">Short</option>
+                                        <option value="midi">Midi</option>
+                                        <option value="long">Long</option>
+                                        <option value="maxi">Maxi</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Neckline:</label>
+                                    <select id="neckline">
+                                        <option value="">Select...</option>
+                                        <option value="crew">Crew</option>
+                                        <option value="v-neck">V-Neck</option>
+                                        <option value="scoop">Scoop</option>
+                                        <option value="off-shoulder">Off-Shoulder</option>
+                                        <option value="strapless">Strapless</option>
+                                        <option value="halter">Halter</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-panel" id="tab-lower">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Lower:</label>
+                                    <select id="lower">
+                                        <option value="">Select...</option>
+                                        <option value="pants">Pants</option>
+                                        <option value="jeans">Jeans</option>
+                                        <option value="skirt">Skirt</option>
+                                        <option value="shorts">Shorts</option>
+                                        <option value="leggings">Leggings</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Bottoms Type (alias):</label>
+                                    <select id="bottomsType">
+                                        <option value="">None</option>
+                                        <option value="pants">Pants</option>
+                                        <option value="skirt">Skirt</option>
+                                        <option value="jeans">Jeans</option>
+                                        <option value="shorts">Shorts</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Bottoms Style:</label>
+                                    <select id="bottomsStyle">
+                                        <option value="">None</option>
+                                        <option value="pleated">Pleated</option>
+                                        <option value="pencil">Pencil</option>
+                                        <option value="a-line">A-line</option>
+                                        <option value="mini">Mini</option>
+                                        <option value="maxi">Maxi</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Lower Color:</label>
+                                    <select id="lowerColor">
+                                        <option value="">Select...</option>
+                                        <option value="white">White</option>
+                                        <option value="black">Black</option>
+                                        <option value="blue">Blue</option>
+                                        <option value="gray">Gray</option>
+                                        <option value="brown">Brown</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Legwear:</label>
+                                    <select id="legwear">
+                                        <option value="">None</option>
+                                        <option value="stockings">Stockings</option>
+                                        <option value="tights">Tights</option>
+                                        <option value="leggings">Leggings</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Legwear Style:</label>
+                                    <select id="legwearStyle">
+                                        <option value="">None</option>
+                                        <option value="fishnet">Fishnet</option>
+                                        <option value="opaque">Opaque</option>
+                                        <option value="sheer">Sheer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intimate Lower:</label>
+                                    <select id="intimateLower">
+                                        <option value="">None</option>
+                                        <option value="thong">Thong</option>
+                                        <option value="boyshorts">Boyshorts</option>
+                                        <option value="briefs">Briefs</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-panel" id="tab-accessories">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Earrings:</label>
+                                    <select id="earrings">
+                                        <option value="">None</option>
+                                        <option value="hoops">Hoops</option>
+                                        <option value="studs">Studs</option>
+                                        <option value="chandelier">Chandelier</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Neckwear:</label>
+                                    <select id="neckwear">
+                                        <option value="">None</option>
+                                        <option value="pearl necklace">Pearl Necklace</option>
+                                        <option value="choker">Choker</option>
+                                        <option value="long pendant">Long Pendant</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Accessories:</label>
+                                    <input type="text" id="accessories" placeholder="pearl necklace, hat, bag">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Outerwear:</label>
+                                    <input type="text" id="outerwear" placeholder="blazer, coat, cardigan">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-panel" id="tab-footwear">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Footwear:</label>
+                                    <select id="footwear">
+                                        <option value="">Select...</option>
+                                        <option value="heels">Heels</option>
+                                        <option value="sneakers">Sneakers</option>
+                                        <option value="boots">Boots</option>
+                                        <option value="flats">Flats</option>
+                                        <option value="sandals">Sandals</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Shoe Type (alias):</label>
+                                    <select id="shoeType">
+                                        <option value="">None</option>
+                                        <option value="boots">Boots</option>
+                                        <option value="sandals">Sandals</option>
+                                        <option value="sneakers">Sneakers</option>
+                                        <option value="loafers">Loafers</option>
+                                        <option value="mules">Mules</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Footwear Color:</label>
+                                    <select id="footwearColor">
+                                        <option value="">Select...</option>
+                                        <option value="black">Black</option>
+                                        <option value="brown">Brown</option>
+                                        <option value="white">White</option>
+                                        <option value="tan">Tan</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Heel Height:</label>
+                                    <input type="text" id="heelHeight" placeholder='e.g., 4"'>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Scene Tab -->
-                <div id="sceneTab" class="tab-content hidden">
-                    <div class="glass p-6 rounded-xl space-y-4">
-                        <h3 class="text-lg font-semibold flex items-center space-x-2">
-                            <i class="fas fa-camera text-green-400"></i>
-                            <span>🎬 Scena & Fotografia</span>
-                        </h3>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Location</label>
-                                <select id="location" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="indoor-studio">Studio Indoor</option>
-                                    <option value="near-window" selected>Vicino alla Finestra</option>
-                                    <option value="bedroom">Camera da Letto</option>
-                                    <option value="outdoor-natural">Esterno Naturale</option>
-                                    <option value="urban">Ambiente Urbano</option>
-                                    <option value="beach">Spiaggia</option>
-                                    <option value="forest">Bosco</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Illuminazione</label>
-                                <select id="lighting" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="natural" selected>Luce Naturale</option>
-                                    <option value="studio">Illuminazione Studio</option>
-                                    <option value="golden-hour">Ora Dorata</option>
-                                    <option value="blue-hour">Ora Blu</option>
-                                    <option value="dramatic">Drammatica</option>
-                                    <option value="soft">Morbida</option>
-                                    <option value="warm">Calda</option>
-                                </select>
-                            </div>
+                <!-- Scene Section -->
+                <div class="form-section">
+                    <h3>🎬 SCENA (Scene)</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Pose:</label>
+                            <select id="pose">
+                                <option value="">Select...</option>
+                                <option value="standing">Standing</option>
+                                <option value="sitting">Sitting</option>
+                                <option value="reclining">Reclining</option>
+                                <option value="walking">Walking</option>
+                                <option value="dynamic">Dynamic</option>
+                                <option value="relaxed">Relaxed</option>
+                                <option value="editorial">Editorial</option>
+                            </select>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Stile Fotografico</label>
-                                <select id="photographyStyle" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="portrait">Ritratto</option>
-                                    <option value="fashion">Fashion</option>
-                                    <option value="editorial">Editoriale</option>
-                                    <option value="artistic">Artistico</option>
-                                    <option value="cinematic" selected>Cinematografico</option>
-                                    <option value="documentary">Documentario</option>
-                                    <option value="lingerie">Lingerie</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Inquadratura</label>
-                                <select id="shotType" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="full-body" selected>Corpo Intero</option>
-                                    <option value="three-quarter">3/4 del Corpo</option>
-                                    <option value="half-body">Mezzo Busto</option>
-                                    <option value="bust">Busto</option>
-                                    <option value="close-up">Primo Piano</option>
-                                    <option value="face-only">Solo Viso</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Location:</label>
+                            <select id="location">
+                                <option value="">Select...</option>
+                                <option value="studio">Studio</option>
+                                <option value="office">Office</option>
+                                <option value="beach">Beach</option>
+                                <option value="city">City</option>
+                                <option value="park">Park</option>
+                                <option value="home">Home</option>
+                                <option value="restaurant">Restaurant</option>
+                            </select>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Posa</label>
-                                <select id="pose" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="standing" selected>In Piedi</option>
-                                    <option value="sitting">Seduta</option>
-                                    <option value="reclining">Sdraiata</option>
-                                    <option value="walking">Camminando</option>
-                                    <option value="dynamic">Dinamica</option>
-                                    <option value="relaxed">Rilassata</option>
-                                    <option value="editorial">Editoriale</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Mood</label>
-                                <select id="mood" class="form-input w-full px-3 py-2 rounded-lg text-white bg-transparent">
-                                    <option value="professional">Professionale</option>
-                                    <option value="casual">Casual</option>
-                                    <option value="romantic">Romantico</option>
-                                    <option value="artistic">Artistico</option>
-                                    <option value="dramatic">Drammatico</option>
-                                    <option value="playful">Giocoso</option>
-                                    <option value="elegant" selected>Elegante</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Time:</label>
+                            <select id="time">
+                                <option value="">Select...</option>
+                                <option value="morning">Morning</option>
+                                <option value="afternoon">Afternoon</option>
+                                <option value="evening">Evening</option>
+                                <option value="sunset">Sunset</option>
+                                <option value="night">Night</option>
+                            </select>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Panel - Preview & Tools -->
-    <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar" style="max-height: calc(100vh - 64px);">
-            <!-- Live Preview -->
-            <div class="glass p-6 rounded-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold flex items-center space-x-2">
-                        <i class="fas fa-eye text-blue-400"></i>
-                        <span>Anteprima Prompt</span>
-                    </h3>
-                    <div class="flex space-x-2">
-                        <button id="copyBtn" class="btn-secondary px-3 py-2 rounded-lg flex items-center space-x-2">
-                            <i class="fas fa-copy"></i>
-                            <span>Copia</span>
-                        </button>
-                        <button id="exportBtn" class="btn-secondary px-3 py-2 rounded-lg flex items-center space-x-2">
-                            <i class="fas fa-download"></i>
-                            <span>Esporta</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="promptPreview" class="form-input p-4 min-h-32 rounded-lg text-white leading-relaxed">
-                    <span class="text-white/50 italic">Compila il form per vedere l'anteprima del prompt...</span>
-                </div>
-                
-                <div class="flex justify-between items-center mt-4 text-sm text-white/70">
-                    <div>Caratteri: <span id="charCount">0</span> / ~512</div>
-                    <div>Complessità: <span id="complexityLevel">Bassa</span></div>
-                </div>
-            </div>
-
-            <!-- Visual Clothing Map -->
-            <div class="glass p-6 rounded-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold flex items-center space-x-2">
-                        <i class="fas fa-user-circle text-purple-400"></i>
-                        <span>Mappa Visuale Outfit</span>
-                    </h3>
-                    <button id="toggleMap" class="btn-secondary px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                
-                <div id="clothingMap" class="clothing-map">
-                    <div class="space-y-2 text-sm">
-                        <div id="mapHead" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>👤 TESTA:</span>
-                            <span class="text-white/60">Nessuno</span>
+                        <div class="form-group">
+                            <label>Weather:</label>
+                            <select id="weather">
+                                <option value="">Select...</option>
+                                <option value="sunny">Sunny</option>
+                                <option value="cloudy">Cloudy</option>
+                                <option value="rainy">Rainy</option>
+                                <option value="snowy">Snowy</option>
+                            </select>
                         </div>
-                        <div id="mapUpper" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>👔 SUPERIORE:</span>
-                            <span class="text-white/60">Nessuno</span>
+                        <div class="form-group">
+                            <label>Mood:</label>
+                            <select id="mood">
+                                <option value="">Select...</option>
+                                <option value="romantic">Romantic</option>
+                                <option value="professional">Professional</option>
+                                <option value="casual">Casual</option>
+                                <option value="dramatic">Dramatic</option>
+                                <option value="playful">Playful</option>
+                                <option value="elegant">Elegant</option>
+                            </select>
                         </div>
-                        <div id="mapTorso" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>👗 TORSO:</span>
-                            <span class="text-white/60">Nessuno</span>
+                        <div class="form-group">
+                            <label>Lighting:</label>
+                            <select id="lighting">
+                                <option value="">Select...</option>
+                                <option value="natural">Natural</option>
+                                <option value="dramatic">Dramatic</option>
+                                <option value="soft">Soft</option>
+                                <option value="harsh">Harsh</option>
+                                <option value="backlit">Backlit</option>
+                            </select>
                         </div>
-                        <div id="mapLower" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>👖 INFERIORE:</span>
-                            <span class="text-white/60">Nessuno</span>
+                        <div class="form-group">
+                            <label>Shot Type:</label>
+                            <select id="shotType">
+                                <option value="">Select...</option>
+                                <option value="full-body">Full Body</option>
+                                <option value="three-quarter">Three Quarter</option>
+                                <option value="bust">Bust</option>
+                                <option value="close-up">Close Up</option>
+                                <option value="face-only">Face Only</option>
+                            </select>
                         </div>
-                        <div id="mapLegs" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>🦵 GAMBE:</span>
-                            <span class="text-white/60">Nessuno</span>
-                        </div>
-                        <div id="mapFeet" class="body-part glass p-3 rounded-lg flex items-center justify-between">
-                            <span>👠 PIEDI:</span>
-                            <span class="text-white/60">Nessuno</span>
+                        <div class="form-group full-width">
+                            <label>Background:</label>
+                            <input type="text" id="background" placeholder="city skyline, studio backdrop">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="glass p-6 rounded-xl">
-                <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                    <i class="fas fa-bolt text-yellow-400"></i>
-                    <span>Azioni Rapide</span>
-                </h3>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <button id="randomBtn" class="btn-secondary p-3 rounded-lg flex items-center justify-center space-x-2">
-                        <i class="fas fa-dice"></i>
-                        <span>Casuale</span>
-                    </button>
-                    <button id="clearBtn" class="btn-secondary p-3 rounded-lg flex items-center justify-center space-x-2">
-                        <i class="fas fa-trash"></i>
-                        <span>Pulisci</span>
-                    </button>
+            <!-- Preview Area -->
+            <div class="preview-area">
+                <!-- Live Prompt Preview -->
+                <div class="prompt-preview">
+                    <h3>Live Prompt Preview</h3>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <div style="flex:1"></div>
+                        <button id="copyPromptBtn" class="control-btn" title="Copy prompt">Copy</button>
+                    </div>
+                    <div id="promptOutput" class="prompt-output" tabindex="0">
+                        "Female, 24 years old, standing in studio, natural lighting."
+                    </div>
                 </div>
-            </div>
 
-            <!-- Quick Presets -->
-            <div class="glass p-6 rounded-xl">
-                <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
-                    <i class="fas fa-bookmark text-pink-400"></i>
-                    <span>Preset Rapidi</span>
-                </h3>
-                
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="professional">
-                        💼 Business
-                    </button>
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="casual">
-                        👕 Casual
-                    </button>
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="evening">
-                        🌃 Elegante
-                    </button>
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="beach">
-                        🏖️ Spiaggia
-                    </button>
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="athletic">
-                        🏃‍♀️ Sportivo
-                    </button>
-                    <button class="preset-btn btn-secondary p-3 rounded-lg" data-preset="artistic">
-                        🎭 Artistico
-                    </button>
-                </div>
-            </div>
-
-            <!-- Saved Prompts -->
-            <div class="glass p-6 rounded-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold flex items-center space-x-2">
-                        <i class="fas fa-save text-green-400"></i>
-                        <span>Prompt Salvati</span>
-                    </h3>
-                    <button id="loadSavedBtn" class="btn-secondary px-3 py-2 rounded-lg text-sm">
-                        <i class="fas fa-folder-open"></i>
-                    </button>
-                </div>
-                
-                <div id="savedPrompts" class="space-y-2 text-sm">
-                    <div class="text-white/50 italic text-center py-4">
-                        Nessun prompt salvato
+                <!-- Clothing Visual Map -->
+                <div class="clothing-map">
+                    <h3>Clothing Visual Map</h3>
+                    <div id="clothingMapOutput" class="clothing-map-output">
+                        <div class="clothing-item">👤 HEAD: </div>
+                        <div class="clothing-item">👔 UPPER: </div>
+                        <div class="clothing-item">👗 TORSO: </div>
+                        <div class="clothing-item">👖 LOWER: </div>
+                        <div class="clothing-item">🦵 LEGS: </div>
+                        <div class="clothing-item">👠 FEET: </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
-
-    <!-- Modal for Saved Prompts -->
-    <div id="savedPromptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
-        <div class="glass p-6 rounded-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold">Prompt Salvati</h3>
-                <button id="closeModal" class="btn-secondary px-3 py-2 rounded-lg">
-                    <i class="fas fa-times"></i>
-                </button>
+    <!-- Save Preset Modal -->
+    <div id="saveModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Save Preset</h3>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="presetName" placeholder="Enter preset name">
             </div>
-            <div id="modalPromptsList" class="space-y-3">
-                <!-- Prompt list will be populated here -->
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="presetCategory">
+                    <option value="outfit">Outfit</option>
+                    <option value="scene">Scene</option>
+                    <option value="appearance">Appearance</option>
+                    <option value="identity">Identity</option>
+                    <option value="prompt">Prompt</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tags:</label>
+                <input type="text" id="presetTags" placeholder="tag1, tag2, tag3">
+            </div>
+            <div class="modal-buttons">
+                <button id="saveConfirm" class="btn-primary">Save</button>
+                <button id="saveCancel" class="btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Manage Presets Modal -->
+    <div id="managePresetsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Manage Saved Presets</h3>
+            <div id="presetsList" style="max-height:300px;overflow:auto;border:1px solid var(--border-color);padding:8px;border-radius:6px;">
+                <!-- Preset entries will be injected here -->
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+                <button id="closeManagePresets" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/ui/app.js"></script>
 </body>
 </html>

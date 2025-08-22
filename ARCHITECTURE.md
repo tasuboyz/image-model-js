@@ -1,350 +1,409 @@
-# 🏗️ Architettura del Progetto - Image Prompt Builder
+# AI Image Model - Prompt Generator
 
-## 📋 Panoramica
-Il **Image Prompt Builder** è un'applicazione web full-stack per la generazione di prompt AI per modelli umani con outfit consistenti. L'architettura segue il pattern MVC con separazione chiara tra frontend e backend.
+## 🎨 Architettura del Progetto (JavaScript ES6)
 
-## 🗂️ Struttura File
+Un generatore di prompt avanzato per modelli di immagini AI con focus su abbigliamento e aspetto. Interfaccia web interattiva con backend Node.js/Express e database SQLite.
+
+### 📁 Struttura del Progetto
 
 ```
 image-model-js/
-├── 📄 index.html              # Template HTML principale
-├── 🎨 styles.css             # Foglio di stile principale
-├── ⚡ app.js                 # Logica frontend JavaScript
-├── 🐍 app.py                 # Server Flask (backend)
-├── 📦 requirements.txt       # Dipendenze Python
-├── 📖 README.md              # Documentazione principale
-├── 📝 PROJECT_PLAN.md        # Piano di sviluppo
-├── ✨ FEATURES.md            # Lista delle funzionalità
-└── 🏗️ ARCHITECTURE.md       # Questo file
+├── package.json                 # Configurazione Node.js e dipendenze
+├── index.html                   # Entry point frontend
+├── styles.css                   # Stili globali con supporto tema scuro/chiaro
+├── src/
+│   ├── server/
+│   │   ├── app.js               # Server Express.js con API REST
+│   │   └── db.js                # Helper SQLite per persistenza preset
+│   ├── lib/                     # Librerie client riutilizzabili
+│   │   ├── promptGenerator.js   # Generatore di prompt (ES6 modules)
+│   │   ├── storage.js           # Wrapper LocalStorage + autosave
+│   │   ├── apiClient.js         # Client AJAX per API backend
+│   │   └── i18n.js              # Helper traduzione/normalizzazione valori
+│   ├── data/
+│   │   └── outfits.js           # Database/preset outfit (seed presets)
+│   └── ui/
+│       └── app.js               # Controller UI (event handling, preview)
+├── scripts/
+│   └── smoke_db_test.js         # Test di integrazione API/database
+├── tests/
+│   └── promptGenerator.test.js  # Unit test per il generatore prompt
+├── prompts.db                   # Database SQLite (creato automaticamente)
+└── README.md                    # Documentazione del progetto
 ```
 
-## 🏛️ Architettura del Sistema
+## 🚀 Avvio del Progetto
 
-### 🎭 Frontend (Client-Side)
-```
-┌─────────────────────────────────────────┐
-│             PRESENTATION LAYER           │
-├─────────────────────────────────────────┤
-│ index.html                              │
-│ ├── Header (Navigation, Presets)        │
-│ ├── Sidebar (Form Tabs)                 │
-│ │   ├── Identity Tab                    │
-│ │   ├── Appearance Tab                  │
-│ │   ├── Clothing Tab                    │
-│ │   └── Scene Tab                       │
-│ └── Main Panel                          │
-│     ├── Live Preview                    │
-│     ├── Visual Clothing Map             │
-│     ├── Quick Actions                   │
-│     └── Saved Prompts                   │
-└─────────────────────────────────────────┘
+### 1. Installazione Dipendenze
+
+```bash
+npm install
 ```
 
-### 🎨 Styling Layer
-```
-┌─────────────────────────────────────────┐
-│              STYLE LAYER                │
-├─────────────────────────────────────────┤
-│ styles.css                              │
-│ ├── 🌀 Glassmorphism Effects           │
-│ ├── 🎨 Gradient Backgrounds            │
-│ ├── ✨ Animations & Transitions        │
-│ ├── 📱 Responsive Design               │
-│ ├── 🎛️ Form Components                 │
-│ └── ♿ Accessibility Features          │
-└─────────────────────────────────────────┘
+### 2. Avvio del Server
+
+```bash
+# Avvio normale
+npm start
+
+# Modalità sviluppo (con watch)
+npm run dev
 ```
 
-### ⚡ Logic Layer
-```
-┌─────────────────────────────────────────┐
-│             BUSINESS LOGIC              │
-├─────────────────────────────────────────┤
-│ app.js                                  │
-│ ├── 🏪 appState (Application State)     │
-│ ├── 🛠️ Utils (Utility Functions)        │
-│ ├── 💾 Storage (LocalStorage Manager)   │
-│ ├── 🤖 PromptGenerator (Core Engine)    │
-│ ├── 🖥️ UI (Interface Controller)        │
-│ └── 🎲 OUTFIT_DATABASE (Presets)       │
-└─────────────────────────────────────────┘
+Il server sarà disponibile su: `http://localhost:3000`
+
+### 3. Test
+
+```bash
+# Test unitari
+npm test
+
+# Test di integrazione (smoke test)
+npm run smoke-test
 ```
 
-### 🐍 Backend (Server-Side)
+## 🎯 Funzionalità Principali
+
+### ✨ Interfaccia Utente
+
+- **Layout Responsive**: Sidebar form (40%) + Area preview (60%)
+- **Tema Scuro/Chiaro**: Toggle automatico con persistenza
+- **Autosave**: Salvataggio automatico dei dati del form
+- **Preview Live**: Aggiornamento in tempo reale del prompt
+- **Mappa Visuale Outfit**: Rappresentazione grafica dell'abbigliamento
+
+### 👤 Sezioni Form
+
+#### Identità
+- Età, genere, etnia, professione
+- Tags personalizzati e note
+- Campi sensibili (opzionali, nascosti di default)
+
+#### Aspetto
+- Tipo di corpo, altezza, tonalità pelle
+- Capelli: lunghezza, stile, colore, texture
+- Colore occhi, makeup
+
+#### Outfit
+- Capo superiore: tipo, colore, lunghezza, scollatura
+- Capo inferiore: tipo, colore
+- Calzature: tipo, colore, altezza tacco
+- Accessori e soprabiti
+
+#### Scena
+- Posa, location, orario, meteo
+- Mood, illuminazione, tipo di inquadratura
+- Sfondo personalizzabile
+
+### 🔧 Tecnologie Backend
+
+#### Server Express.js
+- **API REST**: CRUD completo per preset
+- **CORS**: Configurato per sviluppo cross-origin
+- **Middleware**: Logging, parsing JSON, file statici
+- **Error Handling**: Gestione errori centralizzata
+
+#### Database SQLite
+- **Tabelle**: `presets` con metadata (nome, categoria, tags)
+- **Operazioni**: Create, Read, Update, Delete, Search
+- **Batch Operations**: Creazione/eliminazione multipla
+- **Export/Import**: JSON format con versioning
+
+### 📡 API Endpoints
+
 ```
-┌─────────────────────────────────────────┐
-│             SERVER LAYER                │
-├─────────────────────────────────────────┤
-│ app.py (Flask Application)              │
-│ ├── 🌐 API Routes                       │
-│ │   ├── POST /api/generate              │
-│ │   ├── GET/POST /api/prompts           │
-│ │   └── GET /api/health                 │
-│ ├── 💾 SQLite Database Models           │
-│ ├── 🤖 Server-side Prompt Generation    │
-│ └── 📁 Static File Serving              │
-└─────────────────────────────────────────┘
+GET    /api/health              # Health check
+GET    /api/presets             # Lista tutti i preset (con filtri)
+GET    /api/presets/:id         # Singolo preset
+POST   /api/presets             # Crea nuovo preset
+PUT    /api/presets/:id         # Aggiorna preset
+DELETE /api/presets/:id         # Elimina preset
+POST   /api/presets/batch       # Creazione batch
+DELETE /api/presets/batch       # Eliminazione batch
+GET    /api/categories          # Lista categorie
+GET    /api/tags                # Lista tags
+GET    /api/export              # Export preset
+POST   /api/import              # Import preset
 ```
 
-## 🔄 Flusso di Dati
+### 🧩 Moduli JavaScript ES6
 
-### 📝 Creazione Prompt
-```
-User Input (Form) 
-    ↓
-UI.handleFormChange() 
-    ↓
-PromptGenerator.generate()
-    ↓
-Live Preview Update
-    ↓
-Storage.autoSave() → LocalStorage
-```
-
-### 💾 Salvataggio/Caricamento
-```
-Save Action
-    ↓
-Storage.savePrompt()
-    ↓
-LocalStorage + UI Update
-    ↓
-Optional: API /api/prompts (POST)
-```
-
-### 🎯 Preset Application
-```
-Preset Selection
-    ↓
-OUTFIT_DATABASE.presets[name]
-    ↓
-UI.applyPreset()
-    ↓
-Form Population + Auto-generation
-```
-
-## 🧩 Componenti Principali
-
-### 1. 🎛️ Form System
-- **Tabs**: Identity, Appearance, Clothing, Scene
-- **Validation**: Real-time con feedback visivo
-- **Auto-save**: Salvataggio automatico in LocalStorage
-- **Progress**: Barra di completamento dinamica
-
-### 2. 🤖 Prompt Engine
-- **Generator**: Algoritmo di generazione prompt head-to-toe
-- **Templates**: System di template modulari
-- **Validation**: Controllo coerenza outfit
-- **Stats**: Analisi complessità e caratteri
-
-### 3. 💾 Storage System
-- **LocalStorage**: Persistenza lato client
-- **Auto-save**: Backup continuo del form
-- **Prompt History**: Gestione cronologia
-- **Export/Import**: Funzionalità di esportazione
-
-### 4. 🎨 UI Components
-- **Glassmorphism**: Effetti visivi moderni
-- **Responsive**: Design mobile-first
-- **Accessibility**: Support screen readers
-- **Animations**: Transizioni fluide
-
-## 🔧 Tecnologie Utilizzate
-
-### Frontend Stack
-- **HTML5**: Struttura semantica
-- **CSS3**: Styling moderno (Glassmorphism)
-- **JavaScript ES6+**: Logica applicativa
-- **TailwindCSS**: Framework CSS utility-first
-- **Font Awesome**: Iconografia
-- **Google Fonts**: Typography (Inter)
-
-### Backend Stack
-- **Python 3.8+**: Linguaggio server
-- **Flask**: Framework web leggero
-- **Flask-CORS**: Cross-origin resource sharing
-- **SQLite**: Database embedded
-- **Werkzeug**: WSGI utilities
-
-### Development Tools
-- **VS Code**: Editor principale
-- **PowerShell**: Terminal environment
-- **Git**: Version control
-- **Browser DevTools**: Debug e testing
-
-## 📐 Design Patterns
-
-### 1. 🏭 Module Pattern
+#### PromptGenerator
 ```javascript
-const ComponentName = {
-    init() { /* initialization */ },
-    method() { /* public methods */ },
-    _privateMethod() { /* private methods */ }
+import PromptGenerator from './src/lib/promptGenerator.js';
+
+const generator = new PromptGenerator();
+const result = generator.generate(formData);
+// { prompt: "string", clothingMap: [...] }
+```
+
+#### Storage (LocalStorage)
+```javascript
+import Storage from './src/lib/storage.js';
+
+const storage = new Storage();
+storage.autosave(formData);
+const presets = storage.loadPresets();
+```
+
+#### ApiClient
+```javascript
+import ApiClient from './src/lib/apiClient.js';
+
+const client = new ApiClient();
+const preset = await client.createPreset(data);
+```
+
+#### I18n (Normalizzazione)
+```javascript
+import I18n from './src/lib/i18n.js';
+
+const i18n = new I18n('en');
+const normalized = i18n.normalizeValue('v-neck'); // "v neck"
+```
+
+## 📋 Esempi di Utilizzo
+
+### Generazione Prompt Completo
+
+```javascript
+const formData = {
+    identity: {
+        age: 28,
+        gender: 'female',
+        ethnicity: 'asian',
+        profession: 'doctor'
+    },
+    appearance: {
+        bodyType: 'slim',
+        height: 'tall',
+        hairLength: 'long',
+        hairStyle: 'wavy',
+        hairColor: 'black',
+        eyeColor: 'brown',
+        skinTone: 'fair',
+        makeup: 'natural'
+    },
+    outfit: {
+        torso: 'dress',
+        torsoColor: 'red',
+        torsoLength: 'midi',
+        neckline: 'v-neck',
+        footwear: 'heels',
+        footwearColor: 'black',
+        heelHeight: '4"',
+        accessories: 'pearl necklace'
+    },
+    scene: {
+        pose: 'standing',
+        location: 'office',
+        time: 'morning',
+        mood: 'professional',
+        lighting: 'natural',
+        shotType: 'full-body'
+    }
 };
+
+const generator = new PromptGenerator();
+const result = generator.generate(formData);
+
+console.log(result.prompt);
+// "Female, 28 years old, asian, doctor, tall slim build, long wavy black hair, 
+//  brown eyes, fair skin, natural makeup, wearing red midi dress with v neck, 
+//  black heels (4") and pearl necklace, posed standing in office, at morning, 
+//  natural lighting, full body shot, professional mood"
 ```
 
-### 2. 🔄 Observer Pattern
+### Salvataggio Preset
+
 ```javascript
-// Form changes trigger multiple updates
-UI.handleFormChange() → [
-    generateAndUpdatePreview(),
-    updateProgress(),
-    updateClothingMap(),
-    autoSave()
-]
+const apiClient = new ApiClient();
+
+const preset = {
+    name: 'Evening Elegant Look',
+    category: 'outfit',
+    data: formData,
+    tags: ['evening', 'elegant', 'formal']
+};
+
+const response = await apiClient.createPreset(preset);
+console.log('Preset saved with ID:', response.id);
 ```
 
-### 3. 💾 Repository Pattern
+### Mappa Visuale Outfit
+
 ```javascript
-Storage = {
-    save(), load(), clear(),
-    savePrompt(), getSavedPrompts(),
-    autoSave(), loadAutoSave()
+const result = generator.generate(formData);
+
+result.clothingMap.forEach(area => {
+    console.log(area.display);
+});
+
+// Output:
+// "👤 HEAD: None"
+// "👔 UPPER: None"  
+// "👗 TORSO: red midi dress"
+// "👖 LOWER: None"
+// "🦵 LEGS: None"
+// "👠 FEET: black heels (4")"
+```
+
+## 🎨 Personalizzazione UI
+
+### CSS Variables per Theming
+
+```css
+:root {
+    --primary-color: #3b82f6;
+    --background-color: #ffffff;
+    --surface-color: #f8fafc;
+    --text-color: #1e293b;
+    /* ... */
+}
+
+[data-theme="dark"] {
+    --background-color: #0f172a;
+    --surface-color: #1e293b;
+    --text-color: #f1f5f9;
+    /* ... */
 }
 ```
 
-### 4. 🏗️ Builder Pattern
+### Event Handling
+
 ```javascript
-PromptGenerator.generate() → [
-    generateIdentity(),
-    generateAppearance(),
-    generateOutfit(),
-    generateScene()
-] → Complete Prompt
+// Auto-update del preview sui cambiamenti form
+document.addEventListener('input', (e) => {
+    if (e.target.matches('input, select, textarea')) {
+        appController.handleFormChange(e.target);
+    }
+});
+
+// Shortcuts da tastiera
+// Ctrl+S: Save
+// Ctrl+E: Export  
+// Ctrl+R: Clear (override default)
+// Escape: Close modal
 ```
 
-## 🚀 Funzionalità Principali
+## 🧪 Testing
 
-### ✨ Core Features
-- [x] **Form Builder**: Creazione outfit step-by-step
-- [x] **Live Preview**: Anteprima in tempo reale
-- [x] **Preset System**: Template predefiniti
-- [x] **Save/Load**: Gestione prompt salvati
-- [x] **Export**: Download come file .txt
-- [x] **Auto-save**: Backup automatico
-- [x] **Visual Map**: Mappa visuale dell'outfit
-- [x] **Progress Tracking**: Indicatore completamento
+### Unit Tests
+```bash
+npm test
+# Testa PromptGenerator con vari scenari
+```
 
-### 🎨 UI/UX Features
-- [x] **Glassmorphism**: Design moderno
-- [x] **Responsive**: Mobile-friendly
-- [x] **Animations**: Transizioni fluide
-- [x] **Dark Theme**: Support tema scuro
-- [x] **Accessibility**: Screen reader support
-- [x] **Keyboard Navigation**: Navigazione da tastiera
+### Integration Tests
+```bash
+npm run smoke-test
+# Testa API endpoints e database operations
+```
 
-### 🔧 Technical Features
-- [x] **Client Storage**: LocalStorage integration
-- [x] **API Integration**: Backend communication
-- [x] **Error Handling**: Gestione errori robusta
-- [x] **Performance**: Debouncing e optimization
-- [x] **SEO Ready**: Meta tags e structure
+### Coverage Test Principali
+- ✅ Generazione prompt con dati minimi
+- ✅ Generazione prompt completa
+- ✅ Gestione abiti che coprono parti inferiori
+- ✅ Mappa visuale outfit
+- ✅ Campi sensibili (on/off)
+- ✅ Normalizzazione valori
+- ✅ Gestione valori vuoti/null
+- ✅ API CRUD operations
+- ✅ Batch operations
+- ✅ Search e filtering
 
-## 📊 Performance Considerations
+## 🔧 Configurazione Avanzata
 
-### ⚡ Optimizations
-- **Debouncing**: Limitazione chiamate API (300ms)
-- **Lazy Loading**: Caricamento componenti on-demand
-- **Minimal DOM**: Manipolazione DOM ottimizzata
-- **CSS Efficiency**: Selettori performanti
-- **Image Optimization**: Sprite e compression
+### Opzioni PromptGenerator
 
-### 📱 Mobile Performance
-- **Touch Events**: Gestione touch ottimizzata
-- **Viewport**: Meta viewport configurato
-- **Reduced Motion**: Support prefers-reduced-motion
-- **Offline**: Service worker (planned)
+```javascript
+const options = {
+    includeSensitive: false,  // Include campi sensibili
+    language: 'en'           // Lingua per normalizzazione
+};
 
-## 🔒 Security Considerations
+const generator = new PromptGenerator(options);
+```
 
-### 🛡️ Client-Side Security
-- **Input Validation**: Sanitizzazione input utente
-- **XSS Prevention**: Escape di contenuti dinamici
-- **CSRF Protection**: Token CSRF (backend)
-- **Content Security Policy**: CSP headers (planned)
+### Configurazione Storage
 
-### 🔐 Data Privacy
-- **Local Storage**: Dati solo in locale
-- **No Tracking**: Nessun analytics invasivo
-- **GDPR Compliance**: Conformità privacy
-- **Data Encryption**: Encryption opzionale (planned)
+```javascript
+const storageOptions = {
+    keyPrefix: 'aiPrompt_',
+    autosaveKey: 'currentForm',
+    autosaveDelay: 1000
+};
 
-## 🧪 Testing Strategy
+const storage = new Storage(storageOptions);
+```
 
-### ✅ Test Types
-- **Unit Tests**: Funzioni core (planned)
-- **Integration Tests**: API endpoints (planned)
-- **E2E Tests**: User workflows (planned)
-- **Manual Testing**: Browser compatibility
+### Configurazione Server
 
-### 🎯 Test Coverage
-- **Form Validation**: Input validation logic
-- **Prompt Generation**: Output quality
-- **Storage Operations**: Save/load functionality
-- **UI Interactions**: User interface behavior
+```javascript
+const serverOptions = {
+    port: process.env.PORT || 3000,
+    host: process.env.HOST || 'localhost'
+};
 
-## 🚀 Deployment
+const server = new Server(serverOptions);
+```
 
-### 📦 Build Process
-1. **Development**: Local Flask server
-2. **Testing**: Manual browser testing
-3. **Production**: Static hosting + API server
-4. **CI/CD**: Automated deployment (planned)
+## 📚 Architettura e Design Patterns
 
-### 🌐 Hosting Options
-- **Static Frontend**: Netlify, Vercel, GitHub Pages
-- **Backend API**: Heroku, Railway, DigitalOcean
-- **Database**: SQLite (local) → PostgreSQL (production)
-- **CDN**: CloudFlare (planned)
+### Module Pattern (ES6)
+- Ogni componente è un modulo ES6 indipendente
+- Import/export espliciti per dependencies
+- Namespace isolation per prevenire conflitti
 
-## 🔄 Future Enhancements
+### Observer Pattern  
+- Event-driven UI updates
+- Form changes → Preview updates
+- Debounced autosave
 
-### 🆕 Planned Features
-- [ ] **AI Integration**: OpenAI/Stable Diffusion API
-- [ ] **Image Generation**: Direct image creation
-- [ ] **User Accounts**: Registration e login
-- [ ] **Cloud Sync**: Sincronizzazione cloud
-- [ ] **Collaboration**: Sharing e comments
-- [ ] **Advanced Presets**: Machine learning suggestions
-- [ ] **Plugin System**: Extensibility
-- [ ] **Mobile App**: React Native/Flutter
+### Factory Pattern
+- PromptGenerator genera oggetti strutturati
+- Database factory per diverse configurazioni
 
-### 🏗️ Technical Debt
-- [ ] **TypeScript**: Migration to TypeScript
-- [ ] **Testing**: Comprehensive test suite
-- [ ] **Documentation**: API documentation
-- [ ] **Performance**: Bundle optimization
-- [ ] **Security**: Security audit
-- [ ] **Monitoring**: Error tracking (Sentry)
+### Repository Pattern
+- Storage abstraction per LocalStorage
+- ApiClient abstraction per HTTP requests
+- Database class per SQLite operations
 
-## 📚 Documentation
+## 🛠️ Sviluppo e Contributi
 
-### 📖 Available Docs
-- `README.md`: Setup e usage instructions
-- `FEATURES.md`: Feature documentation
-- `PROJECT_PLAN.md`: Development roadmap
-- `ARCHITECTURE.md`: This architectural overview
+### Setup Ambiente di Sviluppo
 
-### 📝 Code Documentation
-- **JSDoc**: Function documentation (planned)
-- **OpenAPI**: API specification (planned)
-- **Style Guide**: Coding standards (planned)
+```bash
+# Clone e setup
+git clone <repository>
+cd image-model-js
+npm install
 
----
+# Sviluppo con hot reload
+npm run dev
 
-## 🤝 Contributing
+# Debug database
+# Il file prompts.db viene creato automaticamente
+# Usa qualsiasi SQLite browser per ispezionare
+```
 
-Per contribuire al progetto:
-1. Fork del repository
-2. Creazione feature branch
-3. Commit con conventional commits
-4. Pull request con descrizione dettagliata
+### Struttura per Nuove Features
 
-## 📄 License
+1. **Backend**: Aggiungi endpoint in `src/server/app.js`
+2. **Database**: Estendi `src/server/db.js` per nuove queries
+3. **Frontend**: Aggiungi logica in `src/ui/app.js`
+4. **Lib**: Crea moduli riutilizzabili in `src/lib/`
+5. **Tests**: Aggiungi test in `tests/`
 
-Progetto open source sotto licenza MIT.
+### Best Practices
+
+- ✅ Usa ES6 modules e async/await
+- ✅ Implementa error handling appropriato
+- ✅ Scrivi test per nuove funzionalità
+- ✅ Segui la struttura CSS con variabili
+- ✅ Documenta le API nel codice
+- ✅ Usa semantic versioning per releases
 
 ---
 
-*Ultima modifica: Agosto 2025*
-*Versione: 1.0.0*
+**🎯 Obiettivo**: Fornire un tool professionale e user-friendly per la generazione di prompt AI, con architettura modulare e scalabile per future estensioni.
