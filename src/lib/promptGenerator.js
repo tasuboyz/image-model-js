@@ -102,6 +102,11 @@ export class PromptGenerator {
             }
         }
 
+        // Free-form notes should be appended to identity section so preview updates
+        if (identity.notes) {
+            parts.push(identity.notes);
+        }
+
         return parts.filter(Boolean).join(', ');
     }
 

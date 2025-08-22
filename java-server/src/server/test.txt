@@ -1,0 +1,2 @@
+mvn -q clean package assembly:single
+java -jar target\java-server-1.0.0-jar-with-dependencies.jar
