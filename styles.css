@@ -191,6 +191,41 @@ body {
     grid-column: 1 / -1;
 }
 
+/* Color manager styles */
+.color-palette {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+}
+.color-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.color-item label {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+}
+.color-item input[type="color"] {
+    width: 48px;
+    height: 32px;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    margin-left: 8px;
+    border: 1px solid rgba(0,0,0,0.12);
+    vertical-align: middle;
+}
+
 .form-group label {
     font-weight: 500;
     color: var(--text-color);

@@ -108,6 +108,79 @@ class AppController {
         });
     }
 
+    /** Initialize color manager controls and wiring */
+    initColorManager() {
+        // Palette inputs
+        const palettePrimary = document.getElementById('palettePrimary');
+        const paletteSecondary = document.getElementById('paletteSecondary');
+        const paletteAccent = document.getElementById('paletteAccent');
+        const palettePattern = document.getElementById('palettePattern');
+
+        // Pickers for specific parts
+        const torsoPicker = document.getElementById('torsoColorPicker');
+        const lowerPicker = document.getElementById('lowerColorPicker');
+        const footwearPicker = document.getElementById('footwearColorPicker');
+
+        // Quick apply buttons
+        const applyPrimaryToTorso = document.getElementById('applyPrimaryToTorso');
+        const applySecondaryToLower = document.getElementById('applySecondaryToLower');
+        const applyAccentToFootwear = document.getElementById('applyAccentToFootwear');
+
+        // When pickers change, update formData and the corresponding select (if present)
+        const wirePicker = (picker, targetField) => {
+            if (!picker) return;
+            picker.addEventListener('input', (e) => {
+                const hex = e.target.value;
+                // store hex value into outfit color field
+                if (!this.formData.outfit) this.formData.outfit = {};
+                this.formData.outfit[targetField] = hex;
+
+                // if there is an existing select with the same id (e.g., torsoColor), update it
+                const select = document.getElementById(targetField);
+                if (select && select.tagName === 'SELECT') {
+                    // create an option for hex if not present
+                    let opt = Array.from(select.options).find(o => o.value === hex);
+                    if (!opt) {
+                        opt = document.createElement('option');
+                        opt.value = hex;
+                        opt.textContent = hex;
+                        select.appendChild(opt);
+                    }
+                    select.value = hex;
+                }
+
+                this.updatePreview();
+                this.renderColorSwatches();
+            });
+        };
+
+        wirePicker(torsoPicker, 'torsoColor');
+        wirePicker(lowerPicker, 'lowerColor');
+        wirePicker(footwearPicker, 'footwearColor');
+
+        // Apply palette shortcuts
+        if (applyPrimaryToTorso && palettePrimary) {
+            applyPrimaryToTorso.addEventListener('click', () => {
+                const c = palettePrimary.value;
+                if (torsoPicker) { torsoPicker.value = c; torsoPicker.dispatchEvent(new Event('input')); }
+            });
+        }
+
+        if (applySecondaryToLower && paletteSecondary) {
+            applySecondaryToLower.addEventListener('click', () => {
+                const c = paletteSecondary.value;
+                if (lowerPicker) { lowerPicker.value = c; lowerPicker.dispatchEvent(new Event('input')); }
+            });
+        }
+
+        if (applyAccentToFootwear && paletteAccent) {
+            applyAccentToFootwear.addEventListener('click', () => {
+                const c = paletteAccent.value;
+                if (footwearPicker) { footwearPicker.value = c; footwearPicker.dispatchEvent(new Event('input')); }
+            });
+        }
+    }
+
     /**
      * Set up form field event listeners
      */
@@ -128,6 +201,9 @@ class AppController {
                 });
             }
         });
+
+    // Initialize color manager wiring after form inputs are wired
+    this.initColorManager();
     }
 
     /**
@@ -436,7 +512,7 @@ class AppController {
     getFieldSection(fieldId) {
         const identityFields = ['age', 'gender', 'ethnicity', 'profession', 'braCup', 'bustSize', 'tags', 'notes'];
         const appearanceFields = ['bodyType', 'height', 'skinTone', 'hairLength', 'hairStyle', 'hairColor', 'eyeColor', 'makeup'];
-    const outfitFields = ['torso', 'torsoColor', 'torsoLength', 'neckline', 'lower', 'lowerColor', 'footwear', 'footwearColor', 'heelHeight', 'accessories', 'outerwear', 'headwear', 'hairAccessories', 'faceAccessories', 'upperBodyMain', 'torsoGarment', 'torsoStyle', 'torsoFit', 'bottomsType', 'bottomsStyle', 'intimateLower', 'legwear', 'legwearStyle', 'shoeType', 'earrings', 'neckwear'];
+    const outfitFields = ['torso', 'torsoColor', 'torsoLength', 'neckline', 'lower', 'lowerColor', 'footwear', 'footwearColor', 'heelHeight', 'accessories', 'outerwear', 'headwear', 'hairAccessories', 'faceAccessories', 'upperBodyMain', 'torsoGarment', 'torsoStyle', 'torsoFit', 'bottomsType', 'bottomsStyle', 'intimateLower', 'legwear', 'legwearStyle', 'shoeType', 'earrings', 'neckwear', 'belt'];
         const sceneFields = ['pose', 'location', 'time', 'weather', 'mood', 'lighting', 'shotType', 'background'];
         
         if (identityFields.includes(fieldId)) return 'identity';
@@ -491,6 +567,41 @@ class AppController {
             }
             
             clothingMapOutput.appendChild(item);
+        });
+
+        // Render color swatches for mapped items based on current formData
+        this.renderColorSwatches();
+    }
+
+    /** Render small color swatches next to clothing items when color data is present */
+    renderColorSwatches() {
+        const clothingMapOutput = document.getElementById('clothingMapOutput');
+        if (!clothingMapOutput) return;
+
+        // For each clothing-item element, look for matching area and attach swatch
+        const items = clothingMapOutput.querySelectorAll('.clothing-item');
+        items.forEach(el => {
+            // clear existing swatch
+            const existing = el.querySelector('.color-swatch');
+            if (existing) existing.remove();
+
+            const text = el.textContent || '';
+            const lower = text.toLowerCase();
+
+            // Decide which color to show based on keywords
+            let color = null;
+            if (lower.includes('torso') && this.formData.outfit && this.formData.outfit.torsoColor) color = this.formData.outfit.torsoColor;
+            if (lower.includes('lower') && this.formData.outfit && this.formData.outfit.lowerColor) color = this.formData.outfit.lowerColor;
+            if (lower.includes('feet') && this.formData.outfit && this.formData.outfit.footwearColor) color = this.formData.outfit.footwearColor;
+            if (lower.includes('upper') && this.formData.outfit && this.formData.outfit.torsoColor) color = this.formData.outfit.torsoColor;
+
+            if (color) {
+                const sw = document.createElement('span');
+                sw.className = 'color-swatch';
+                sw.title = color;
+                sw.style.background = color;
+                el.appendChild(sw);
+            }
         });
     }
 

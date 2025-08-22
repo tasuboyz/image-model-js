@@ -2,6 +2,8 @@
  * PromptGenerator - Advanced clothing and appearance prompt generator for AI image models
  * Generates natural language prompts from structured form data
  */
+import colorUtils from './colorUtils.js';
+
 export class PromptGenerator {
     constructor(options = {}) {
         this.options = {
@@ -199,7 +201,8 @@ export class PromptGenerator {
         // Main torso item
         if (outfit.torso) {
             const torsoParts = [];
-            if (outfit.torsoColor) torsoParts.push(this._normalizeValue(outfit.torsoColor));
+            // Support hex color values (from color picker) and named colors
+            if (outfit.torsoColor) torsoParts.push(this._formatColorForPrompt(outfit.torsoColor));
 
             // If it's a dress, include length as attribute
             if (outfit.torsoLength && outfit.torso === 'dress') {
@@ -220,7 +223,7 @@ export class PromptGenerator {
             wearingParts.push(torsoParts.join(' '));
         }
 
-        // Lower garment (if torso doesn't cover lower or if explicitly specified)
+    // Lower garment (if torso doesn't cover lower or if explicitly specified)
         const torsoCoversLower = outfit.torso === 'dress' || outfit.torsoCoversLower;
         const lowerType = outfit.lower || outfit.bottomsType;
             // If no explicit lower but intimateLower is present, treat intimate as lower for description
@@ -233,7 +236,7 @@ export class PromptGenerator {
 
             if (effectiveLower && !torsoCoversLower) {
                 const lowerParts = [];
-                if (outfit.lowerColor) lowerParts.push(this._normalizeValue(outfit.lowerColor));
+                if (outfit.lowerColor) lowerParts.push(this._formatColorForPrompt(outfit.lowerColor));
                 if (outfit.bottomsStyle) lowerParts.push(this._normalizeValue(outfit.bottomsStyle));
                 // If intimate is used as lower, prefix to make intent clear
                 if (intimateUsedAsLower) {
@@ -258,7 +261,7 @@ export class PromptGenerator {
         const shoe = outfit.footwear || outfit.shoeType;
         if (shoe) {
             const footwearParts = [];
-            if (outfit.footwearColor) footwearParts.push(this._normalizeValue(outfit.footwearColor));
+            if (outfit.footwearColor) footwearParts.push(this._formatColorForPrompt(outfit.footwearColor));
             footwearParts.push(this._normalizeValue(shoe));
             if (outfit.heelHeight && shoe === 'heels') footwearParts.push(`(${outfit.heelHeight})`);
             wearingParts.push(footwearParts.join(' '));
@@ -273,6 +276,8 @@ export class PromptGenerator {
         const accessoriesParts = [];
         if (outfit.earrings) accessoriesParts.push(this._normalizeValue(outfit.earrings));
         if (outfit.neckwear) accessoriesParts.push(this._normalizeValue(outfit.neckwear));
+    // belt as an accessory/waist detail
+    if (outfit.belt) accessoriesParts.push(this._normalizeValue(outfit.belt));
         if (outfit.accessories) accessoriesParts.push(outfit.accessories);
         if (accessoriesParts.length > 0) parts.push(`and ${accessoriesParts.join(', ')}`);
 
@@ -292,7 +297,17 @@ export class PromptGenerator {
         // Pose and location
         const poseParts = [];
         if (scene.pose) {
-            poseParts.push(`posed ${this._normalizeValue(scene.pose)}`);
+            // special-case back-facing pose for natural description
+            if (scene.pose === 'back-facing') {
+                // language-aware phrasing
+                if (this.options.language && this.options.language.startsWith('it')) {
+                    poseParts.push('girata di spalle');
+                } else {
+                    poseParts.push('facing away from the camera');
+                }
+            } else {
+                poseParts.push(`posed ${this._normalizeValue(scene.pose)}`);
+            }
         }
         if (scene.location) {
             poseParts.push(`in ${this._normalizeValue(scene.location)}`);
@@ -368,7 +383,8 @@ export class PromptGenerator {
         map.push({
             area: 'head',
             items: headItems,
-            display: `👤 HEAD: ${headItems.join(', ') || 'None'}`
+            display: `👤 HEAD: ${headItems.join(', ') || 'None'}`,
+            colorMeta: null
         });
 
         // Upper body
@@ -389,7 +405,8 @@ export class PromptGenerator {
         map.push({
             area: 'upper',
             items: upperItems,
-            display: `👔 UPPER: ${upperItems.join(', ') || 'None'}`
+            display: `👔 UPPER: ${upperItems.join(', ') || 'None'}`,
+            colorMeta: outfit.torsoColor || null
         });
 
         // Torso
@@ -405,10 +422,13 @@ export class PromptGenerator {
             ].filter(Boolean).join(' ');
             torsoItems.push(torsoDesc);
         }
+    // include belt in torso/upper items for visual map if present
+    if (outfit.belt) torsoItems.push(`belt: ${this._normalizeValue(outfit.belt)}`);
         map.push({
             area: 'torso',
             items: torsoItems,
-            display: `👗 TORSO: ${torsoItems.join(', ') || 'None'}`
+            display: `👗 TORSO: ${torsoItems.join(', ') || 'None'}`,
+            colorMeta: outfit.torsoColor || null
         });
 
         // Lower body
@@ -436,7 +456,8 @@ export class PromptGenerator {
         map.push({
             area: 'lower',
             items: lowerItems,
-            display: `👖 LOWER: ${lowerItems.join(', ') || 'None'}`
+            display: `👖 LOWER: ${lowerItems.join(', ') || 'None'}`,
+            colorMeta: outfit.lowerColor || null
         });
 
         // Legs
@@ -448,7 +469,8 @@ export class PromptGenerator {
         map.push({
             area: 'legs',
             items: legItems,
-            display: `🦵 LEGS: ${legItems.join(', ') || 'None'}`
+            display: `🦵 LEGS: ${legItems.join(', ') || 'None'}`,
+            colorMeta: null
         });
 
         // Feet
@@ -469,7 +491,8 @@ export class PromptGenerator {
         map.push({
             area: 'feet',
             items: feetItems,
-            display: `👠 FEET: ${feetItems.join(', ') || 'None'}`
+            display: `👠 FEET: ${feetItems.join(', ') || 'None'}`,
+            colorMeta: outfit.footwearColor || null
         });
 
         return map;
@@ -488,6 +511,27 @@ export class PromptGenerator {
             .replace(/-/g, ' ')
             .replace(/_/g, ' ')
             .trim();
+    }
+
+    /**
+     * Format color for prompt: accept named colors or hex values and produce friendly label
+     */
+    _formatColorForPrompt(color) {
+        if (!color) return '';
+
+        // If it's a hex color, try to return a friendly name (with hex fallback)
+        try {
+            if (typeof color === 'string' && color.trim().startsWith('#')) {
+                const hex = color.trim();
+                const friendly = colorUtils.hexToFriendlyName(hex);
+                if (friendly && friendly !== hex) return `${friendly} (${hex})`;
+                return hex;
+            }
+        } catch (e) {
+            // ignore and fallback
+        }
+
+        return this._normalizeValue(color);
     }
 
     /**

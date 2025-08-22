@@ -173,6 +173,57 @@
                     </div>
                 </div>
 
+                <!-- Color Manager Section -->
+                <div class="form-section" id="colorManagerSection">
+                    <h3>🎨 COLORI (Colors)</h3>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Palette rapida (Quick Palette):</label>
+                            <div class="color-palette">
+                                <div class="color-item">
+                                    <label>Primary</label>
+                                    <input type="color" id="palettePrimary" value="#3b82f6">
+                                </div>
+                                <div class="color-item">
+                                    <label>Secondary</label>
+                                    <input type="color" id="paletteSecondary" value="#64748b">
+                                </div>
+                                <div class="color-item">
+                                    <label>Accent</label>
+                                    <input type="color" id="paletteAccent" value="#f59e0b">
+                                </div>
+                                <div class="color-item">
+                                    <label>Pattern</label>
+                                    <input type="color" id="palettePattern" value="#ef4444">
+                                </div>
+                            </div>
+                            <small>Usa questi colori come palette di progetto. Puoi applicarli rapidamente agli elementi qui sotto.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Torso Color (picker):</label>
+                            <input type="color" id="torsoColorPicker" value="#ffffff">
+                            <button id="applyPrimaryToTorso" class="control-btn" style="margin-top:6px;">Applica Primary</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Lower Color (picker):</label>
+                            <input type="color" id="lowerColorPicker" value="#ffffff">
+                            <button id="applySecondaryToLower" class="control-btn" style="margin-top:6px;">Applica Secondary</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Footwear Color (picker):</label>
+                            <input type="color" id="footwearColorPicker" value="#ffffff">
+                            <button id="applyAccentToFootwear" class="control-btn" style="margin-top:6px;">Applica Accent</button>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <small>Nota: i picker impostano il valore colore direttamente nel modello dati; i selettori di colore esistenti rimangono compatibili.</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Breasts Section (Sensitive) -->
                 <div class="form-section sensitive-field" id="breastSection" style="display: none;">
                     <h3>SENO (Breasts) — Sensitive</h3>
@@ -303,6 +354,17 @@
                                         <option value="bodice">Bodice</option>
                                         <option value="wrap">Wrap</option>
                                         <option value="vest">Vest</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Belt:</label>
+                                    <select id="belt">
+                                        <option value="">None</option>
+                                        <option value="leather">Leather</option>
+                                        <option value="chain">Chain</option>
+                                        <option value="fabric sash">Fabric sash</option>
+                                        <option value="corset-style">Corset-style</option>
+                                        <option value="wide">Wide belt</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -523,6 +585,7 @@
                                 <option value="">Select...</option>
                                 <option value="standing">Standing</option>
                                 <option value="sitting">Sitting</option>
+                                <option value="back-facing">Girata di spalle</option>
                                 <option value="reclining">Reclining</option>
                                 <option value="walking">Walking</option>
                                 <option value="dynamic">Dynamic</option>
